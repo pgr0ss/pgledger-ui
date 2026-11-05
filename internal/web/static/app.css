@@ -123,11 +123,42 @@ a.pill:hover { border-color: var(--accent); text-decoration: none; }
 .flow { font-size: 16px; }
 .flow .amount { margin-left: 12px; }
 
-.spark { margin: 0 0 16px; }
-.sparkline { width: 100%; height: 80px; display: block; background: var(--surface); border-radius: 6px; }
-.sparkline .line { fill: none; stroke: var(--accent); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
-.sparkline .zero { stroke: var(--muted); stroke-dasharray: 4 4; stroke-width: 1; vector-effect: non-scaling-stroke; }
-.spark figcaption { font-size: 12px; margin-top: 4px; }
+.chart { margin: 0 0 16px; }
+.chart-grid { display: grid; grid-template-columns: max-content 1fr; column-gap: 8px; }
+.chart .y-axis { position: relative; height: 160px; font: 11px var(--mono); color: var(--muted); }
+.chart .y-axis span { position: absolute; right: 0; transform: translateY(-50%); white-space: nowrap; }
+.chart .plot { position: relative; height: 160px; border-left: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.balance-chart { width: 100%; height: 160px; display: block; overflow: visible; }
+.balance-chart .tick { stroke: var(--border); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.balance-chart .zero { stroke: var(--muted); stroke-dasharray: 4 4; stroke-width: 1; vector-effect: non-scaling-stroke; }
+.balance-chart .line { fill: none; stroke: var(--accent); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.chart .x-axis { position: relative; height: 20px; }
+.chart .x-axis span { position: absolute; top: 4px; font: 11px var(--mono); color: var(--muted); white-space: nowrap; }
+.chart .x-axis .middle { transform: translateX(-50%); }
+.chart .x-axis .end { transform: translateX(-100%); }
+.chart .guide { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px dashed var(--muted); pointer-events: none; }
+.chart .dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--bg);
+  pointer-events: none;
+}
+.chart .readout {
+  position: absolute;
+  top: 4px;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  font: 12px var(--mono);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.chart figcaption { font-size: 12px; margin-top: 4px; }
 
 form.balance-at { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .balance-result { margin: 8px 0 0; }

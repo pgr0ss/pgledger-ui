@@ -151,7 +151,7 @@ func TestBalanceAt(t *testing.T) {
 
 func TestBalanceHistory(t *testing.T) {
 	r, s := reconStore(t)
-	points, err := s.BalanceHistory(t.Context(), r.Accounts["user1.receivables"], ledger.SparklinePoints)
+	points, err := s.BalanceHistory(t.Context(), r.Accounts["user1.receivables"], ledger.ChartPoints)
 	require.NoError(t, err)
 	var balances []string
 	for _, p := range points {

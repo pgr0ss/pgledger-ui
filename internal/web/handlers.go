@@ -86,18 +86,17 @@ type balanceAt struct {
 
 type accountPage struct {
 	base
-	Account       ledger.Account
-	View          string
-	Order         ledger.Order
-	Entries       []ledger.Entry
-	Before        string
-	Grid          gridView
-	Sparkline     *Sparkline
-	SparkCount    int
-	SparkFirst    time.Time
-	SparkCapped   bool
-	BalanceAt     *balanceAt
-	BalanceAtForm string
+	Account     ledger.Account
+	View        string
+	Order       ledger.Order
+	Entries     []ledger.Entry
+	Before      string
+	Grid        gridView
+	Chart       *Chart
+	ChartCount  int
+	ChartFirst  time.Time
+	ChartCapped bool
+	BalanceAt   *balanceAt
 }
 
 var atLayouts = []string{"2006-01-02T15:04:05", "2006-01-02T15:04", time.RFC3339}
@@ -126,17 +125,17 @@ func (s *server) account(w http.ResponseWriter, r *http.Request) {
 		Order:   ledger.ParseOrder(r.FormValue("order")),
 	}
 
-	points, err := s.store.BalanceHistory(ctx, id, ledger.SparklinePoints)
+	points, err := s.store.BalanceHistory(ctx, id, ledger.ChartPoints)
 	if err != nil {
 		s.fail(w, r, err, id)
 		return
 	}
-	if p.Sparkline, err = BuildSparkline(points, 600, 80); err != nil {
+	if p.Chart, err = BuildChart(points, 600, 160); err != nil {
 		s.fail(w, r, err, id)
 		return
 	}
-	if p.Sparkline != nil {
-		p.SparkCount, p.SparkFirst, p.SparkCapped = len(points), points[0].At, len(points) == ledger.SparklinePoints
+	if p.Chart != nil {
+		p.ChartCount, p.ChartFirst, p.ChartCapped = len(points), points[0].At, len(points) == ledger.ChartPoints
 	}
 
 	if raw := r.FormValue("at"); raw != "" {

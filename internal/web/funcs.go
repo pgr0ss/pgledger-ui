@@ -16,6 +16,7 @@ const timeLayout = "2006-01-02 15:04:05.000"
 var funcs = template.FuncMap{
 	"short":           short,
 	"ts":              ts,
+	"tsMinute":        tsMinute,
 	"signClass":       signClass,
 	"traceURL":        traceURL,
 	"accountsMetaURL": accountsMetaURL,
@@ -47,6 +48,12 @@ func short(id string) string {
 func ts(t time.Time) template.HTML {
 	u := t.UTC()
 	return template.HTML(`<time datetime="` + u.Format(time.RFC3339Nano) + `">` + u.Format(timeLayout) + `</time>`)
+}
+
+// tsMinute is ts truncated to minutes, for axis labels.
+func tsMinute(t time.Time) template.HTML {
+	u := t.UTC()
+	return template.HTML(`<time datetime="` + u.Format(time.RFC3339Nano) + `" data-fmt="minute">` + u.Format("2006-01-02 15:04") + `</time>`)
 }
 
 func signClass(amount string) string {

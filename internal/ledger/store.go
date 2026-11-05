@@ -17,7 +17,7 @@ const (
 	PageSize         = 50
 	SearchLimit      = 8
 	MaxGridTransfers = 500
-	SparklinePoints  = 500
+	ChartPoints      = 500
 )
 
 var ErrNotFound = errors.New("not found")

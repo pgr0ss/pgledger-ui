@@ -107,7 +107,7 @@ func TestAccountPage(t *testing.T) {
 	f := newFixture(t)
 	status, body := f.get(t, "/accounts/"+f.Accounts["user1.receivables"])
 	assert.Equal(t, http.StatusOK, status)
-	assert.Contains(t, body, `<svg class="sparkline"`)
+	assert.Contains(t, body, `<svg class="balance-chart"`)
 	assert.Contains(t, body, `<time datetime="`)
 }
 

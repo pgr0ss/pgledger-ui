@@ -14,6 +14,10 @@ function formatLocal(d) {
     `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${pad(d.getMilliseconds(), 3)}`;
 }
 
+function formatTime(d, local) {
+  return local ? formatLocal(d) : d.toISOString().slice(0, 23).replace("T", " ");
+}
+
 // datetime-local value (YYYY-MM-DDTHH:MM:SS) for a Date, in local or UTC fields.
 function inputValue(d, local) {
   if (local) {
@@ -27,7 +31,8 @@ function applyTimezone(root) {
   const local = tzMode() === "local";
   for (const el of root.querySelectorAll("time[datetime]")) {
     if (!el.dataset.utc) el.dataset.utc = el.textContent;
-    const localText = formatLocal(new Date(el.getAttribute("datetime")));
+    const full = formatLocal(new Date(el.getAttribute("datetime")));
+    const localText = el.dataset.fmt === "minute" ? full.slice(0, 16) : full;
     el.textContent = local ? localText : el.dataset.utc;
     el.title = local ? `${el.dataset.utc} UTC` : `${localText} ${localZone}`;
   }
@@ -120,7 +125,31 @@ function toggleColumn(e, on) {
 document.addEventListener("mouseover", (e) => toggleColumn(e, true));
 document.addEventListener("mouseout", (e) => toggleColumn(e, false));
 
+// Balance chart hover: snap to the nearest entry and show its balance.
+function chartHover(plot) {
+  const points = JSON.parse(plot.dataset.chart);
+  const [guide, dot, readout] = ["guide", "dot", "readout"].map((c) => plot.querySelector(`.${c}`));
+  const currency = plot.closest(".chart").dataset.currency || "";
+
+  plot.addEventListener("mousemove", (e) => {
+    const rect = plot.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    let p = points[0];
+    for (const q of points) if (Math.abs(q.x - x) < Math.abs(p.x - x)) p = q;
+    guide.style.left = dot.style.left = `${p.x}%`;
+    dot.style.top = `${p.y}%`;
+    readout.textContent = `${p.b} ${currency} · ${formatTime(new Date(p.t), tzMode() === "local")}`;
+    readout.style.left = p.x > 50 ? "" : `calc(${p.x}% + 8px)`;
+    readout.style.right = p.x > 50 ? `calc(${100 - p.x}% + 8px)` : "";
+    guide.hidden = dot.hidden = readout.hidden = false;
+  });
+  plot.addEventListener("mouseleave", () => {
+    guide.hidden = dot.hidden = readout.hidden = true;
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   for (const form of document.querySelectorAll("form[data-live]")) liveSearch(form);
+  for (const plot of document.querySelectorAll(".plot[data-chart]")) chartHover(plot);
   applyTimezone(document);
 });
