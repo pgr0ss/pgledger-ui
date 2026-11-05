@@ -27,7 +27,7 @@ func newFixture(t *testing.T) fixture {
 	t.Helper()
 	t.Parallel()
 	r := testdb.Recon(t)
-	pool, err := ledger.Connect(t.Context(), r.URL)
+	pool, err := ledger.Connect(t.Context(), r.URL, nil)
 	require.NoError(t, err)
 	t.Cleanup(pool.Close)
 	store := ledger.NewStore(pool)

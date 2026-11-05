@@ -66,9 +66,18 @@ func parse(fs *flag.FlagSet, args []string) string {
 func serve(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("serve", flag.ExitOnError)
 	addr := fs.String("addr", "127.0.0.1:8080", "listen address")
+	slowMS := fs.Int("log-slow-queries-ms", -1, "log queries taking at least this many milliseconds; 0 logs all, -1 disables")
 	dbURL := parse(fs, args)
+	if *slowMS < -1 {
+		fmt.Fprintln(os.Stderr, "--log-slow-queries-ms must be -1 or more")
+		os.Exit(2)
+	}
 
-	pool, err := ledger.Connect(ctx, dbURL)
+	var tracer pgx.QueryTracer
+	if *slowMS >= 0 {
+		tracer = ledger.SlowQueryLogger{Threshold: time.Duration(*slowMS) * time.Millisecond}
+	}
+	pool, err := ledger.Connect(ctx, dbURL, tracer)
 	if err != nil {
 		return err
 	}

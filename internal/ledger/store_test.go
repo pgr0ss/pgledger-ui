@@ -18,7 +18,7 @@ func reconStore(t *testing.T) (testdb.ReconData, *ledger.Store) {
 	t.Helper()
 	t.Parallel()
 	r := testdb.Recon(t)
-	pool, err := ledger.Connect(t.Context(), r.URL)
+	pool, err := ledger.Connect(t.Context(), r.URL, nil)
 	require.NoError(t, err)
 	t.Cleanup(pool.Close)
 	return r, ledger.NewStore(pool)
@@ -304,7 +304,7 @@ func TestGetNotFound(t *testing.T) {
 
 func TestConnectIsReadOnly(t *testing.T) {
 	r, _ := reconStore(t)
-	pool, err := ledger.Connect(context.Background(), r.URL)
+	pool, err := ledger.Connect(context.Background(), r.URL, nil)
 	require.NoError(t, err)
 	defer pool.Close()
 

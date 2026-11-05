@@ -3,6 +3,7 @@ package web
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"embed"
 	"errors"
@@ -12,6 +13,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/pgr0ss/pgledger_visualizer/internal/ledger"
 )
@@ -62,7 +64,30 @@ func New(store *ledger.Store) (http.Handler, error) {
 	mux.HandleFunc("GET /entries/{id}", s.entry)
 	mux.HandleFunc("GET /trace", s.trace)
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServerFS(static)))
-	return mux, nil
+	return logRequests(mux), nil
+}
+
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (r *statusRecorder) WriteHeader(status int) {
+	if r.status == 0 {
+		r.status = status
+	}
+	r.ResponseWriter.WriteHeader(status)
+}
+
+func (r *statusRecorder) Unwrap() http.ResponseWriter { return r.ResponseWriter }
+
+func logRequests(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		rec := &statusRecorder{ResponseWriter: w}
+		next.ServeHTTP(rec, r)
+		slog.Info("request", "method", r.Method, "url", r.URL.RequestURI(), "status", cmp.Or(rec.status, http.StatusOK), "duration", time.Since(start))
+	})
 }
 
 // render executes the page's results block for partial=1 requests and the
