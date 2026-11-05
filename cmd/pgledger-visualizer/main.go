@@ -118,6 +118,6 @@ func runSeed(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("seeded %d accounts, %d transfers\n", sum.Accounts, sum.Transfers)
+	slog.Info("seeded", "accounts", sum.Accounts, "transfers", sum.Transfers)
 	return nil
 }

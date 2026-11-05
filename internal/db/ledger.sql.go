@@ -46,12 +46,12 @@ SELECT
     r.total::TEXT AS total
 FROM ranked r
 INNER JOIN pgledger_accounts_view a ON r.counterparty_id = a.id
-WHERE r.place <= $1::INTEGER
+WHERE r.place <= $1::BIGINT
 ORDER BY r.incoming DESC, r.place ASC
 `
 
 type AccountFlowsParams struct {
-	Top         int32
+	Top         int64
 	AccountID   string
 	CreatedFrom pgtype.Timestamptz
 	CreatedTo   pgtype.Timestamptz
@@ -162,14 +162,14 @@ WHERE
     AND ($2::TIMESTAMPTZ IS NULL OR created_at >= $2::TIMESTAMPTZ)
     AND ($3::TIMESTAMPTZ IS NULL OR created_at <= $3::TIMESTAMPTZ)
 ORDER BY account_version DESC
-LIMIT $4::INTEGER
+LIMIT $4::BIGINT
 `
 
 type BalanceHistoryParams struct {
 	AccountID   string
 	CreatedFrom pgtype.Timestamptz
 	CreatedTo   pgtype.Timestamptz
-	RowLimit    int32
+	RowLimit    int64
 }
 
 type BalanceHistoryRow struct {
@@ -388,7 +388,7 @@ WITH picked AS (
         CASE WHEN $1::BOOLEAN THEN t.event_at ELSE t.created_at END DESC,
         t.created_at DESC,
         t.id DESC
-    LIMIT $7::INTEGER
+    LIMIT $7::BIGINT
 )
 
 SELECT
@@ -419,7 +419,7 @@ type GridEntriesParams struct {
 	MetaValue    string
 	CreatedFrom  pgtype.Timestamptz
 	CreatedTo    pgtype.Timestamptz
-	MaxTransfers int32
+	MaxTransfers int64
 }
 
 type GridEntriesRow struct {
@@ -495,7 +495,7 @@ WHERE
     )
     AND ($3::TEXT = '' OR metadata ->> $3::TEXT = $4::TEXT)
 ORDER BY (name ILIKE $1::TEXT) DESC, name ASC, id ASC
-LIMIT $6::INTEGER OFFSET $5::INTEGER
+LIMIT $6::BIGINT OFFSET $5::BIGINT
 `
 
 type ListAccountsParams struct {
@@ -503,8 +503,8 @@ type ListAccountsParams struct {
 	Contains  string
 	MetaKey   string
 	MetaValue string
-	RowOffset int32
-	RowLimit  int32
+	RowOffset int64
+	RowLimit  int64
 }
 
 type ListAccountsRow struct {
@@ -591,7 +591,7 @@ WHERE
     AND ($5::TIMESTAMPTZ IS NULL OR e.created_at >= $5::TIMESTAMPTZ)
     AND ($6::TIMESTAMPTZ IS NULL OR e.created_at <= $6::TIMESTAMPTZ)
 ORDER BY e.id DESC
-LIMIT $7::INTEGER
+LIMIT $7::BIGINT
 `
 
 type ListEntriesParams struct {
@@ -601,7 +601,7 @@ type ListEntriesParams struct {
 	Before      string
 	CreatedFrom pgtype.Timestamptz
 	CreatedTo   pgtype.Timestamptz
-	RowLimit    int32
+	RowLimit    int64
 }
 
 type ListEntriesRow struct {
@@ -765,14 +765,14 @@ WHERE
     )
     AND ($3::TEXT = '' OR t.id < $3::TEXT)
 ORDER BY t.id DESC
-LIMIT $4::INTEGER
+LIMIT $4::BIGINT
 `
 
 type ListTransfersParams struct {
 	Prefix   string
 	Contains string
 	Before   string
-	RowLimit int32
+	RowLimit int64
 }
 
 type ListTransfersRow struct {
@@ -837,12 +837,12 @@ FROM
 WHERE kv.meta_key ILIKE $1::TEXT OR kv.meta_value ILIKE $1::TEXT
 GROUP BY meta_key, meta_value
 ORDER BY transfers DESC, meta_key ASC, meta_value ASC
-LIMIT $2::INTEGER
+LIMIT $2::BIGINT
 `
 
 type MetadataPairsParams struct {
 	Pattern  string
-	RowLimit int32
+	RowLimit int64
 }
 
 type MetadataPairsRow struct {
@@ -898,12 +898,12 @@ FROM
 WHERE k.meta_key ILIKE $1::TEXT
 GROUP BY meta_key
 ORDER BY transfers DESC, meta_key ASC
-LIMIT $2::INTEGER
+LIMIT $2::BIGINT
 `
 
 type TraceKeysParams struct {
 	Pattern  string
-	RowLimit int32
+	RowLimit int64
 }
 
 type TraceKeysRow struct {
@@ -941,13 +941,13 @@ FROM pgledger_transfers_view
 WHERE metadata ->> $1::TEXT ILIKE $2::TEXT
 GROUP BY meta_value
 ORDER BY last_at DESC
-LIMIT $3::INTEGER
+LIMIT $3::BIGINT
 `
 
 type TraceValuesParams struct {
 	MetaKey  string
 	Pattern  string
-	RowLimit int32
+	RowLimit int64
 }
 
 type TraceValuesRow struct {

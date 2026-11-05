@@ -193,7 +193,7 @@ func Run(ctx context.Context, conn *pgx.Conn, opts Options) (Summary, error) {
 }
 
 func plan(users []user, opts Options, liquidityUSD, liquidityEUR, fees string) []step {
-	rng := rand.New(rand.NewPCG(opts.Seed, opts.Seed))
+	rng := rand.New(rand.NewPCG(opts.Seed, opts.Seed)) //nolint:gosec // sample data must be reproducible from --seed
 	hours := func(lo, hi int) time.Duration { return time.Duration(lo+rng.IntN(hi-lo+1)) * time.Hour }
 	chance := func(pct int) bool { return rng.IntN(100) < pct }
 

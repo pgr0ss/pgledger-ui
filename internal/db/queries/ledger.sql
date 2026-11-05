@@ -28,7 +28,7 @@ WHERE
     )
     AND (sqlc.arg(meta_key)::TEXT = '' OR metadata ->> sqlc.arg(meta_key)::TEXT = sqlc.arg(meta_value)::TEXT)
 ORDER BY (name ILIKE sqlc.arg(prefix)::TEXT) DESC, name ASC, id ASC
-LIMIT sqlc.arg(row_limit)::INTEGER OFFSET sqlc.arg(row_offset)::INTEGER;
+LIMIT sqlc.arg(row_limit)::BIGINT OFFSET sqlc.arg(row_offset)::BIGINT;
 
 -- name: GetAccount :one
 SELECT
@@ -69,7 +69,7 @@ WHERE
     )
     AND (sqlc.arg(before)::TEXT = '' OR t.id < sqlc.arg(before)::TEXT)
 ORDER BY t.id DESC
-LIMIT sqlc.arg(row_limit)::INTEGER;
+LIMIT sqlc.arg(row_limit)::BIGINT;
 
 -- name: GetTransfer :one
 SELECT
@@ -121,7 +121,7 @@ WHERE
     AND (sqlc.narg(created_from)::TIMESTAMPTZ IS NULL OR e.created_at >= sqlc.narg(created_from)::TIMESTAMPTZ)
     AND (sqlc.narg(created_to)::TIMESTAMPTZ IS NULL OR e.created_at <= sqlc.narg(created_to)::TIMESTAMPTZ)
 ORDER BY e.id DESC
-LIMIT sqlc.arg(row_limit)::INTEGER;
+LIMIT sqlc.arg(row_limit)::BIGINT;
 
 -- name: ListTransferEntries :many
 SELECT
@@ -183,7 +183,7 @@ FROM
 WHERE kv.meta_key ILIKE sqlc.arg(pattern)::TEXT OR kv.meta_value ILIKE sqlc.arg(pattern)::TEXT
 GROUP BY meta_key, meta_value
 ORDER BY transfers DESC, meta_key ASC, meta_value ASC
-LIMIT sqlc.arg(row_limit)::INTEGER;
+LIMIT sqlc.arg(row_limit)::BIGINT;
 
 -- name: TraceKeys :many
 SELECT
@@ -195,7 +195,7 @@ FROM
 WHERE k.meta_key ILIKE sqlc.arg(pattern)::TEXT
 GROUP BY meta_key
 ORDER BY transfers DESC, meta_key ASC
-LIMIT sqlc.arg(row_limit)::INTEGER;
+LIMIT sqlc.arg(row_limit)::BIGINT;
 
 -- name: TraceValues :many
 SELECT
@@ -207,7 +207,7 @@ FROM pgledger_transfers_view
 WHERE metadata ->> sqlc.arg(meta_key)::TEXT ILIKE sqlc.arg(pattern)::TEXT
 GROUP BY meta_value
 ORDER BY last_at DESC
-LIMIT sqlc.arg(row_limit)::INTEGER;
+LIMIT sqlc.arg(row_limit)::BIGINT;
 
 -- name: BalanceAtCreated :one
 SELECT
@@ -238,7 +238,7 @@ WHERE
     AND (sqlc.narg(created_from)::TIMESTAMPTZ IS NULL OR created_at >= sqlc.narg(created_from)::TIMESTAMPTZ)
     AND (sqlc.narg(created_to)::TIMESTAMPTZ IS NULL OR created_at <= sqlc.narg(created_to)::TIMESTAMPTZ)
 ORDER BY account_version DESC
-LIMIT sqlc.arg(row_limit)::INTEGER;
+LIMIT sqlc.arg(row_limit)::BIGINT;
 
 -- name: AccountFlows :many
 WITH flows AS (
@@ -274,7 +274,7 @@ SELECT
     r.total::TEXT AS total
 FROM ranked r
 INNER JOIN pgledger_accounts_view a ON r.counterparty_id = a.id
-WHERE r.place <= sqlc.arg(top)::INTEGER
+WHERE r.place <= sqlc.arg(top)::BIGINT
 ORDER BY r.incoming DESC, r.place ASC;
 
 -- name: GridEntries :many
@@ -297,7 +297,7 @@ WITH picked AS (
         CASE WHEN sqlc.arg(by_event)::BOOLEAN THEN t.event_at ELSE t.created_at END DESC,
         t.created_at DESC,
         t.id DESC
-    LIMIT sqlc.arg(max_transfers)::INTEGER
+    LIMIT sqlc.arg(max_transfers)::BIGINT
 )
 
 SELECT

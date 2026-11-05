@@ -49,12 +49,14 @@ func short(id string) string {
 
 func ts(t time.Time) template.HTML {
 	u := t.UTC()
+	//nolint:gosec // only fixed-layout time formatting, no user input
 	return template.HTML(`<time datetime="` + u.Format(time.RFC3339Nano) + `">` + u.Format(timeLayout) + `</time>`)
 }
 
 // tsMinute is ts truncated to minutes, for axis labels.
 func tsMinute(t time.Time) template.HTML {
 	u := t.UTC()
+	//nolint:gosec // only fixed-layout time formatting, no user input
 	return template.HTML(`<time datetime="` + u.Format(time.RFC3339Nano) + `" data-fmt="minute">` + u.Format("2006-01-02 15:04") + `</time>`)
 }
 

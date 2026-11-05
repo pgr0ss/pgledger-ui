@@ -190,7 +190,7 @@ func (s *Store) ListAccounts(ctx context.Context, f AccountFilter) ([]Account, b
 	prefix, contains := patterns(f.Q)
 	rows, err := s.q.ListAccounts(ctx, db.ListAccountsParams{
 		Prefix: prefix, Contains: contains, MetaKey: f.MetaKey, MetaValue: f.MetaValue,
-		RowOffset: int32(f.Offset), RowLimit: int32(f.Limit + 1),
+		RowOffset: int64(f.Offset), RowLimit: int64(f.Limit + 1),
 	})
 	if err != nil {
 		return nil, false, err
@@ -214,7 +214,7 @@ func (s *Store) GetAccount(ctx context.Context, id string) (Account, error) {
 func (s *Store) ListTransfers(ctx context.Context, f TransferFilter) ([]Transfer, bool, error) {
 	prefix, contains := patterns(f.Q)
 	rows, err := s.q.ListTransfers(ctx, db.ListTransfersParams{
-		Prefix: prefix, Contains: contains, Before: f.Before, RowLimit: int32(f.Limit + 1),
+		Prefix: prefix, Contains: contains, Before: f.Before, RowLimit: int64(f.Limit + 1),
 	})
 	if err != nil {
 		return nil, false, err
@@ -240,7 +240,7 @@ func (s *Store) ListEntries(ctx context.Context, f EntryFilter) ([]Entry, bool, 
 	rows, err := s.q.ListEntries(ctx, db.ListEntriesParams{
 		Prefix: prefix, Contains: contains, AccountID: f.AccountID, Before: f.Before,
 		CreatedFrom: timestamptz(f.Created.From), CreatedTo: timestamptz(f.Created.To),
-		RowLimit: int32(f.Limit + 1),
+		RowLimit: int64(f.Limit + 1),
 	})
 	if err != nil {
 		return nil, false, err
@@ -275,7 +275,7 @@ func (s *Store) GetEntry(ctx context.Context, id string) (Entry, error) {
 
 func (s *Store) MetadataPairs(ctx context.Context, q string, limit int) ([]MetaPair, error) {
 	_, contains := patterns(q)
-	rows, err := s.q.MetadataPairs(ctx, db.MetadataPairsParams{Pattern: contains, RowLimit: int32(limit)})
+	rows, err := s.q.MetadataPairs(ctx, db.MetadataPairsParams{Pattern: contains, RowLimit: int64(limit)})
 	if err != nil {
 		return nil, err
 	}
@@ -288,7 +288,7 @@ func (s *Store) MetadataPairs(ctx context.Context, q string, limit int) ([]MetaP
 
 func (s *Store) TraceKeys(ctx context.Context, q string, limit int) ([]KeyCount, error) {
 	_, contains := patterns(q)
-	rows, err := s.q.TraceKeys(ctx, db.TraceKeysParams{Pattern: contains, RowLimit: int32(limit)})
+	rows, err := s.q.TraceKeys(ctx, db.TraceKeysParams{Pattern: contains, RowLimit: int64(limit)})
 	if err != nil {
 		return nil, err
 	}
@@ -301,7 +301,7 @@ func (s *Store) TraceKeys(ctx context.Context, q string, limit int) ([]KeyCount,
 
 func (s *Store) TraceValues(ctx context.Context, key, q string, limit int) ([]TraceValue, error) {
 	_, contains := patterns(q)
-	rows, err := s.q.TraceValues(ctx, db.TraceValuesParams{MetaKey: key, Pattern: contains, RowLimit: int32(limit)})
+	rows, err := s.q.TraceValues(ctx, db.TraceValuesParams{MetaKey: key, Pattern: contains, RowLimit: int64(limit)})
 	if err != nil {
 		return nil, err
 	}
@@ -363,7 +363,7 @@ func (h BalanceHistory) Series(start, end time.Time) []BalancePoint {
 func (s *Store) BalanceHistory(ctx context.Context, accountID string, r TimeRange, limit int) (BalanceHistory, error) {
 	rows, err := s.q.BalanceHistory(ctx, db.BalanceHistoryParams{
 		AccountID: accountID, CreatedFrom: timestamptz(r.From), CreatedTo: timestamptz(r.To),
-		RowLimit: int32(limit + 1),
+		RowLimit: int64(limit + 1),
 	})
 	if err != nil || len(rows) == 0 {
 		return BalanceHistory{}, err
@@ -380,7 +380,7 @@ func (s *Store) BalanceHistory(ctx context.Context, accountID string, r TimeRang
 
 func (s *Store) AccountFlows(ctx context.Context, accountID string, r TimeRange, top int) (Flows, error) {
 	rows, err := s.q.AccountFlows(ctx, db.AccountFlowsParams{
-		AccountID: accountID, CreatedFrom: timestamptz(r.From), CreatedTo: timestamptz(r.To), Top: int32(top),
+		AccountID: accountID, CreatedFrom: timestamptz(r.From), CreatedTo: timestamptz(r.To), Top: int64(top),
 	})
 	if err != nil {
 		return Flows{}, err
@@ -403,7 +403,7 @@ func (s *Store) GridEntries(ctx context.Context, f GridFilter, order Order, maxT
 	rows, err := s.q.GridEntries(ctx, db.GridEntriesParams{
 		ByEvent: order == OrderEvent, AccountID: f.AccountID, MetaKey: f.MetaKey, MetaValue: f.MetaValue,
 		CreatedFrom: timestamptz(f.Created.From), CreatedTo: timestamptz(f.Created.To),
-		MaxTransfers: int32(maxTransfers + 1),
+		MaxTransfers: int64(maxTransfers + 1),
 	})
 	if err != nil {
 		return nil, false, err
