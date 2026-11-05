@@ -10,7 +10,7 @@ _.file = ".env"
 
 [tasks.up]
 description = "Start Postgres"
-run = "docker compose up -d --wait"
+run = "docker compose up"
 
 [tasks.dbreset]
 description = "Drop and recreate the pgledger_visualizer database"
