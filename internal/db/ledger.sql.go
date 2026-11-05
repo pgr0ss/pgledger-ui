@@ -67,7 +67,9 @@ func (q *Queries) BalanceAtEvent(ctx context.Context, arg BalanceAtEventParams) 
 const balanceHistory = `-- name: BalanceHistory :many
 SELECT
     created_at,
-    account_current_balance::TEXT AS balance
+    account_current_balance::TEXT AS balance,
+    account_previous_balance::TEXT AS previous_balance,
+    account_version
 FROM pgledger_entries_view
 WHERE account_id = $1::TEXT
 ORDER BY account_version DESC
@@ -80,8 +82,10 @@ type BalanceHistoryParams struct {
 }
 
 type BalanceHistoryRow struct {
-	CreatedAt time.Time
-	Balance   string
+	CreatedAt       time.Time
+	Balance         string
+	PreviousBalance string
+	AccountVersion  int64
 }
 
 func (q *Queries) BalanceHistory(ctx context.Context, arg BalanceHistoryParams) ([]BalanceHistoryRow, error) {
@@ -93,7 +97,12 @@ func (q *Queries) BalanceHistory(ctx context.Context, arg BalanceHistoryParams) 
 	var items []BalanceHistoryRow
 	for rows.Next() {
 		var i BalanceHistoryRow
-		if err := rows.Scan(&i.CreatedAt, &i.Balance); err != nil {
+		if err := rows.Scan(
+			&i.CreatedAt,
+			&i.Balance,
+			&i.PreviousBalance,
+			&i.AccountVersion,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

@@ -130,17 +130,18 @@ func (s *server) account(w http.ResponseWriter, r *http.Request) {
 		Order:   ledger.ParseOrder(r.FormValue("order")),
 	}
 
-	points, err := s.store.BalanceHistory(ctx, id, ledger.ChartPoints)
+	hist, err := s.store.BalanceHistory(ctx, id, ledger.ChartPoints)
 	if err != nil {
 		s.fail(w, r, err, id)
 		return
 	}
-	if p.Chart, err = BuildChart(points, 600, 160); err != nil {
+	series := hist.Series(acct.CreatedAt)
+	if p.Chart, err = BuildChart(series, 600, 160); err != nil {
 		s.fail(w, r, err, id)
 		return
 	}
 	if p.Chart != nil {
-		p.ChartCount, p.ChartFirst, p.ChartCapped = len(points), points[0].At, len(points) == ledger.ChartPoints
+		p.ChartCount, p.ChartFirst, p.ChartCapped = len(hist.Points), series[0].At, !hist.Complete
 	}
 
 	if raw := r.FormValue("at"); raw != "" {

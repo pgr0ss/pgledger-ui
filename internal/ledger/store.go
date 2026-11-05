@@ -307,18 +307,42 @@ func (s *Store) BalanceAt(ctx context.Context, accountID string, at time.Time, o
 	return Balance{Amount: r.Amount, EntryID: r.EntryID, Entries: r.Entries}, nil
 }
 
-// BalanceHistory returns up to limit of the most recent balances, oldest first.
-func (s *Store) BalanceHistory(ctx context.Context, accountID string, limit int) ([]BalancePoint, error) {
+// BalanceHistory is up to limit of an account's most recent balances.
+type BalanceHistory struct {
+	// Points are balances after each entry, oldest first.
+	Points []BalancePoint
+	// Start is the balance before the oldest point.
+	Start string
+	// Complete reports that Points begin with the account's first entry.
+	Complete bool
+}
+
+// Series returns the points preceded by the starting balance. A complete
+// history starts at the account's creation; a truncated one at its oldest point.
+func (h BalanceHistory) Series(accountCreatedAt time.Time) []BalancePoint {
+	if len(h.Points) == 0 {
+		return nil
+	}
+	start := BalancePoint{At: h.Points[0].At, Balance: h.Start}
+	if h.Complete {
+		start.At = accountCreatedAt
+	}
+	return append([]BalancePoint{start}, h.Points...)
+}
+
+func (s *Store) BalanceHistory(ctx context.Context, accountID string, limit int) (BalanceHistory, error) {
 	rows, err := s.q.BalanceHistory(ctx, db.BalanceHistoryParams{AccountID: accountID, RowLimit: int32(limit)})
-	if err != nil {
-		return nil, err
+	if err != nil || len(rows) == 0 {
+		return BalanceHistory{}, err
 	}
-	out := make([]BalancePoint, len(rows))
+	h := BalanceHistory{Points: make([]BalancePoint, len(rows))}
 	for i, r := range rows {
-		out[i] = BalancePoint{At: r.CreatedAt, Balance: r.Balance}
+		h.Points[i] = BalancePoint{At: r.CreatedAt, Balance: r.Balance}
 	}
-	slices.Reverse(out)
-	return out, nil
+	slices.Reverse(h.Points)
+	oldest := rows[len(rows)-1]
+	h.Start, h.Complete = oldest.PreviousBalance, oldest.AccountVersion == 1
+	return h, nil
 }
 
 // GridEntries returns the entries of the most recent maxTransfers matching

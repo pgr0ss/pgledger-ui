@@ -149,15 +149,37 @@ func TestBalanceAt(t *testing.T) {
 	assert.Equal(t, ledger.Balance{Amount: "0"}, b)
 }
 
+func balances(points []ledger.BalancePoint) []string {
+	var out []string
+	for _, p := range points {
+		out = append(out, p.Balance)
+	}
+	return out
+}
+
 func TestBalanceHistory(t *testing.T) {
 	r, s := reconStore(t)
-	points, err := s.BalanceHistory(t.Context(), r.Accounts["user1.receivables"], ledger.ChartPoints)
+	ctx := t.Context()
+	receivables, err := s.GetAccount(ctx, r.Accounts["user1.receivables"])
 	require.NoError(t, err)
-	var balances []string
-	for _, p := range points {
-		balances = append(balances, p.Balance)
-	}
-	assert.Equal(t, []string{"50.00", "100.00", "50.00", "0.50"}, balances)
+
+	h, err := s.BalanceHistory(ctx, receivables.ID, ledger.ChartPoints)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"50.00", "100.00", "50.00", "0.50"}, balances(h.Points))
+	assert.Equal(t, "0.00", h.Start)
+	assert.True(t, h.Complete)
+	series := h.Series(receivables.CreatedAt)
+	assert.Equal(t, []string{"0.00", "50.00", "100.00", "50.00", "0.50"}, balances(series))
+	assert.Equal(t, receivables.CreatedAt, series[0].At)
+
+	h, err = s.BalanceHistory(ctx, receivables.ID, 2)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"50.00", "0.50"}, balances(h.Points))
+	assert.Equal(t, "100.00", h.Start)
+	assert.False(t, h.Complete)
+	series = h.Series(receivables.CreatedAt)
+	assert.Equal(t, []string{"100.00", "50.00", "0.50"}, balances(series))
+	assert.Equal(t, h.Points[0].At, series[0].At)
 }
 
 func TestGetNotFound(t *testing.T) {

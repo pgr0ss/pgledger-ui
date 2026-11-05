@@ -227,7 +227,9 @@ WHERE account_id = sqlc.arg(account_id)::TEXT AND event_at <= sqlc.arg(at)::TIME
 -- name: BalanceHistory :many
 SELECT
     created_at,
-    account_current_balance::TEXT AS balance
+    account_current_balance::TEXT AS balance,
+    account_previous_balance::TEXT AS previous_balance,
+    account_version
 FROM pgledger_entries_view
 WHERE account_id = sqlc.arg(account_id)::TEXT
 ORDER BY account_version DESC
