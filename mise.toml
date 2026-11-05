@@ -1,6 +1,6 @@
 [tools]
 go = "1.27.3"
-uv = "0.13.7"              # backs the pipx: installer
+uv = "0.13.7"             # backs the pipx: installer
 golangci-lint = "2.15.0"
 "pipx:sqlfluff" = "4.5.0"
 
@@ -25,7 +25,12 @@ run = 'go run ./cmd/pgledger-viz serve --db "${DATABASE_URL:-postgres://pgledger
 
 [tasks.demo]
 description = "Fresh database, sample data, then serve"
-run = [{ task = "up" }, { task = "dbreset" }, { task = "seed" }, { task = "serve" }]
+run = [
+  { task = "up" },
+  { task = "dbreset" },
+  { task = "seed" },
+  { task = "serve" },
+]
 
 [tasks.test]
 run = "go test -race ./..."
@@ -54,7 +59,13 @@ depends = ["lint-sql", "sqlc-check", "golangci-lint", "tidy-check"]
 
 [tasks.check]
 description = "Format, regenerate, tidy, test, lint (local pre-commit)"
-run = [{ task = "format-sql" }, { task = "generate" }, "go mod tidy", { task = "test" }, { task = "lint" }]
+run = [
+  { task = "format-sql" },
+  { task = "generate" },
+  "go mod tidy",
+  { task = "test" },
+  { task = "lint" },
+]
 
 [tasks.sync-pgledger]
 description = "Copy pgledger's schema files into internal/pgschema/sql"
