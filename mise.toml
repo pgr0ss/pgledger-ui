@@ -13,23 +13,23 @@ description = "Start Postgres"
 run = "docker compose up -d --wait"
 
 [tasks.dbreset]
-description = "Drop and recreate the pgledger_viz database"
+description = "Drop and recreate the pgledger_visualizer database"
 run = [
-  "docker compose exec postgres dropdb --force --if-exists -U pgledger pgledger_viz",
-  "docker compose exec postgres createdb -U pgledger pgledger_viz",
+  "docker compose exec postgres dropdb --force --if-exists -U pgledger pgledger_visualizer",
+  "docker compose exec postgres createdb -U pgledger pgledger_visualizer",
 ]
 
 [tasks.seed]
 description = "Install pgledger if missing and load sample data; extra args go to `seed`"
-run = 'go run ./cmd/pgledger-viz seed --install-schema --db "${DATABASE_URL:-postgres://pgledger:pgledger@localhost:${POSTGRES_PORT:-5432}/pgledger_viz}"'
+run = 'go run ./cmd/pgledger-visualizer seed --install-schema --db "${DATABASE_URL:-postgres://pgledger:pgledger@localhost:${POSTGRES_PORT:-5432}/pgledger_visualizer}"'
 
 [tasks.serve]
 description = "Run the visualizer; extra args go to `serve`"
-run = 'go run ./cmd/pgledger-viz serve --db "${DATABASE_URL:-postgres://pgledger:pgledger@localhost:${POSTGRES_PORT:-5432}/pgledger_viz}"'
+run = 'go run ./cmd/pgledger-visualizer serve --db "${DATABASE_URL:-postgres://pgledger:pgledger@localhost:${POSTGRES_PORT:-5432}/pgledger_visualizer}"'
 
 [tasks.dev]
 description = "Like serve, but restarts when Go, SQL, template or static files change; extra args go to `serve`"
-run = 'watchexec --restart --shell=none --exts go,sql,html,css,js -- go run ./cmd/pgledger-viz serve --db "${DATABASE_URL:-postgres://pgledger:pgledger@localhost:${POSTGRES_PORT:-5432}/pgledger_viz}"'
+run = 'watchexec --restart --shell=none --exts go,sql,html,css,js -- go run ./cmd/pgledger-visualizer serve --db "${DATABASE_URL:-postgres://pgledger:pgledger@localhost:${POSTGRES_PORT:-5432}/pgledger_visualizer}"'
 
 [tasks.demo]
 description = "Fresh database, sample data, then serve"

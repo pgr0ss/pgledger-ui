@@ -16,7 +16,7 @@ func Connect(ctx context.Context, url string) (*pgxpool.Pool, error) {
 		return nil, err
 	}
 	cfg.ConnConfig.RuntimeParams["default_transaction_read_only"] = "on"
-	cfg.ConnConfig.RuntimeParams["application_name"] = "pgledger-viz"
+	cfg.ConnConfig.RuntimeParams["application_name"] = "pgledger-visualizer"
 
 	pool, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {
@@ -33,7 +33,7 @@ func Connect(ctx context.Context, url string) (*pgxpool.Pool, error) {
 	}
 	if !installed {
 		pool.Close()
-		return nil, errors.New(`pgledger views not found on search_path; install pgledger or run "pgledger-viz seed --install-schema"`)
+		return nil, errors.New(`pgledger views not found on search_path; install pgledger or run "pgledger-visualizer seed --install-schema"`)
 	}
 	return pool, nil
 }

@@ -1,4 +1,4 @@
-// Command pgledger-viz serves a read-only web UI over pgledger's views and
+// Command pgledger-visualizer serves a read-only web UI over pgledger's views and
 // loads sample data.
 package main
 
@@ -21,13 +21,13 @@ import (
 	"github.com/pgr0ss/pgledger_visualizer/internal/web"
 )
 
-const usage = `usage: pgledger-viz <command> [flags]
+const usage = `usage: pgledger-visualizer <command> [flags]
 
 commands:
   serve   run the web UI (read-only)
   seed    load sample data
 
-run "pgledger-viz <command> -h" for flags`
+run "pgledger-visualizer <command> -h" for flags`
 
 func main() {
 	if len(os.Args) < 2 {

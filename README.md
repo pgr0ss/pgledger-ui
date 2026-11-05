@@ -5,7 +5,7 @@ A read-only web UI for [pgledger](https://github.com/pgr0ss/pgledger) data. It r
 `default_transaction_read_only=on`.
 
 ```sh
-pgledger-viz serve --db postgres://user:pass@host:5432/dbname
+pgledger-visualizer serve --db postgres://user:pass@host:5432/dbname
 ```
 
 Features:
@@ -21,7 +21,7 @@ Features:
 
 ```sh
 mise install
-mise run demo   # start Postgres on :5432, reset the pgledger_viz database, load sample data, serve
+mise run demo   # start Postgres on :5432, reset the pgledger_visualizer database, load sample data, serve
 ```
 
 Then open http://127.0.0.1:8080.
@@ -35,16 +35,16 @@ it into every task, including `mise run test`. Setting `DATABASE_URL` overrides 
 In `../pgledger`, run `just run-examples`. Then:
 
 ```sh
-go run ./cmd/pgledger-viz serve --db postgres://pgledger:pgledger@localhost:5432/pgledger
+go run ./cmd/pgledger-visualizer serve --db postgres://pgledger:pgledger@localhost:5432/pgledger
 ```
 
 `/trace?key=payment_id&value=p_123` reproduces the crosstab in pgledger's `examples/reconciliation.sql.out`.
 
 ## Commands
 
-- `pgledger-viz serve [--addr 127.0.0.1:8080] [--db URL]`: binds to loopback by default.
-- `pgledger-viz seed [--install-schema] [--users 20] [--seed 1] [--db URL]`: loads deterministic sample payment flows into
-  an empty database. `--install-schema` installs pgledger first if its views are missing.
+- `pgledger-visualizer serve [--addr 127.0.0.1:8080] [--db URL]`: binds to loopback by default.
+- `pgledger-visualizer seed [--install-schema] [--users 20] [--seed 1] [--db URL]`: loads deterministic sample payment
+  flows into an empty database. `--install-schema` installs pgledger first if its views are missing.
 
 `--db` defaults to `$DATABASE_URL`.
 

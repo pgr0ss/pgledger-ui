@@ -1,6 +1,6 @@
 "use strict";
 
-const TZ_KEY = "pgledger-viz.tz";
+const TZ_KEY = "pgledger-visualizer.tz";
 const localZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 function tzMode() {
