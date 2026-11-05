@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/pgr0ss/pgledger_visualizer/internal/db"
@@ -118,11 +119,22 @@ type TransferFilter struct {
 
 type EntryFilter struct {
 	Q, AccountID, Before string
+	Created              TimeRange
 	Limit                int
 }
 
 type GridFilter struct {
 	MetaKey, MetaValue, AccountID string
+	Created                       TimeRange
+}
+
+// TimeRange bounds created_at inclusively; a zero bound is open.
+type TimeRange struct {
+	From, To time.Time
+}
+
+func timestamptz(t time.Time) pgtype.Timestamptz {
+	return pgtype.Timestamptz{Time: t, Valid: !t.IsZero()}
 }
 
 var likeEscaper = strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
@@ -227,6 +239,7 @@ func (s *Store) ListEntries(ctx context.Context, f EntryFilter) ([]Entry, bool, 
 	prefix, contains := patterns(f.Q)
 	rows, err := s.q.ListEntries(ctx, db.ListEntriesParams{
 		Prefix: prefix, Contains: contains, AccountID: f.AccountID, Before: f.Before,
+		CreatedFrom: timestamptz(f.Created.From), CreatedTo: timestamptz(f.Created.To),
 		RowLimit: int32(f.Limit + 1),
 	})
 	if err != nil {
@@ -325,50 +338,60 @@ type BalanceHistory struct {
 	Points []BalancePoint
 	// Start is the balance before the oldest point.
 	Start string
-	// Complete reports that Points begin with the account's first entry.
+	// Complete reports that Points begin with the first entry in the range.
 	Complete bool
 }
 
-// Series returns the points preceded by the starting balance. A complete
-// history starts at the account's creation; a truncated one at its oldest point.
-func (h BalanceHistory) Series(accountCreatedAt time.Time) []BalancePoint {
+// Series returns the points preceded by the starting balance and, when end is
+// set, followed by the last balance held until end. A complete history starts
+// at start; a truncated one at its oldest point.
+func (h BalanceHistory) Series(start, end time.Time) []BalancePoint {
 	if len(h.Points) == 0 {
 		return nil
 	}
-	start := BalancePoint{At: h.Points[0].At, Balance: h.Start}
+	first := BalancePoint{At: h.Points[0].At, Balance: h.Start}
 	if h.Complete {
-		start.At = accountCreatedAt
+		first.At = start
 	}
-	return append([]BalancePoint{start}, h.Points...)
+	out := append([]BalancePoint{first}, h.Points...)
+	if !end.IsZero() {
+		out = append(out, BalancePoint{At: end, Balance: h.Points[len(h.Points)-1].Balance})
+	}
+	return out
 }
 
-func (s *Store) BalanceHistory(ctx context.Context, accountID string, limit int) (BalanceHistory, error) {
-	rows, err := s.q.BalanceHistory(ctx, db.BalanceHistoryParams{AccountID: accountID, RowLimit: int32(limit)})
+func (s *Store) BalanceHistory(ctx context.Context, accountID string, r TimeRange, limit int) (BalanceHistory, error) {
+	rows, err := s.q.BalanceHistory(ctx, db.BalanceHistoryParams{
+		AccountID: accountID, CreatedFrom: timestamptz(r.From), CreatedTo: timestamptz(r.To),
+		RowLimit: int32(limit + 1),
+	})
 	if err != nil || len(rows) == 0 {
 		return BalanceHistory{}, err
 	}
-	h := BalanceHistory{Points: make([]BalancePoint, len(rows))}
-	for i, r := range rows {
-		h.Points[i] = BalancePoint{At: r.CreatedAt, Balance: r.Balance}
+	rows, truncated := trim(rows, limit)
+	h := BalanceHistory{Points: make([]BalancePoint, len(rows)), Complete: !truncated}
+	for i, row := range rows {
+		h.Points[i] = BalancePoint{At: row.CreatedAt, Balance: row.Balance}
 	}
 	slices.Reverse(h.Points)
-	oldest := rows[len(rows)-1]
-	h.Start, h.Complete = oldest.PreviousBalance, oldest.AccountVersion == 1
+	h.Start = rows[len(rows)-1].PreviousBalance
 	return h, nil
 }
 
-func (s *Store) AccountFlows(ctx context.Context, accountID string, top int) (Flows, error) {
-	rows, err := s.q.AccountFlows(ctx, db.AccountFlowsParams{AccountID: accountID, Top: int32(top)})
+func (s *Store) AccountFlows(ctx context.Context, accountID string, r TimeRange, top int) (Flows, error) {
+	rows, err := s.q.AccountFlows(ctx, db.AccountFlowsParams{
+		AccountID: accountID, CreatedFrom: timestamptz(r.From), CreatedTo: timestamptz(r.To), Top: int32(top),
+	})
 	if err != nil {
 		return Flows{}, err
 	}
 	f := Flows{In: "0", Out: "0"}
-	for _, r := range rows {
-		c := Counterparty{AccountID: r.CounterpartyID, Name: r.CounterpartyName, Amount: r.Amount}
-		if r.Incoming {
-			f.In, f.TopIn = r.Total, append(f.TopIn, c)
+	for _, row := range rows {
+		c := Counterparty{AccountID: row.CounterpartyID, Name: row.CounterpartyName, Amount: row.Amount}
+		if row.Incoming {
+			f.In, f.TopIn = row.Total, append(f.TopIn, c)
 		} else {
-			f.Out, f.TopOut = r.Total, append(f.TopOut, c)
+			f.Out, f.TopOut = row.Total, append(f.TopOut, c)
 		}
 	}
 	return f, nil
@@ -379,6 +402,7 @@ func (s *Store) AccountFlows(ctx context.Context, accountID string, top int) (Fl
 func (s *Store) GridEntries(ctx context.Context, f GridFilter, order Order, maxTransfers int) ([]GridEntry, bool, error) {
 	rows, err := s.q.GridEntries(ctx, db.GridEntriesParams{
 		ByEvent: order == OrderEvent, AccountID: f.AccountID, MetaKey: f.MetaKey, MetaValue: f.MetaValue,
+		CreatedFrom: timestamptz(f.Created.From), CreatedTo: timestamptz(f.Created.To),
 		MaxTransfers: int32(maxTransfers + 1),
 	})
 	if err != nil {

@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const accountFlows = `-- name: AccountFlows :many
@@ -19,7 +21,10 @@ WITH flows AS (
         END AS counterparty_id,
         sum(t.amount) AS amount
     FROM pgledger_transfers_view t
-    WHERE t.from_account_id = $2::TEXT OR t.to_account_id = $2::TEXT
+    WHERE
+        (t.from_account_id = $2::TEXT OR t.to_account_id = $2::TEXT)
+        AND ($3::TIMESTAMPTZ IS NULL OR t.created_at >= $3::TIMESTAMPTZ)
+        AND ($4::TIMESTAMPTZ IS NULL OR t.created_at <= $4::TIMESTAMPTZ)
     GROUP BY incoming, counterparty_id
 ),
 
@@ -46,8 +51,10 @@ ORDER BY r.incoming DESC, r.place ASC
 `
 
 type AccountFlowsParams struct {
-	Top       int32
-	AccountID string
+	Top         int32
+	AccountID   string
+	CreatedFrom pgtype.Timestamptz
+	CreatedTo   pgtype.Timestamptz
 }
 
 type AccountFlowsRow struct {
@@ -59,7 +66,12 @@ type AccountFlowsRow struct {
 }
 
 func (q *Queries) AccountFlows(ctx context.Context, arg AccountFlowsParams) ([]AccountFlowsRow, error) {
-	rows, err := q.db.Query(ctx, accountFlows, arg.Top, arg.AccountID)
+	rows, err := q.db.Query(ctx, accountFlows,
+		arg.Top,
+		arg.AccountID,
+		arg.CreatedFrom,
+		arg.CreatedTo,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -145,14 +157,19 @@ SELECT
     account_previous_balance::TEXT AS previous_balance,
     account_version
 FROM pgledger_entries_view
-WHERE account_id = $1::TEXT
+WHERE
+    account_id = $1::TEXT
+    AND ($2::TIMESTAMPTZ IS NULL OR created_at >= $2::TIMESTAMPTZ)
+    AND ($3::TIMESTAMPTZ IS NULL OR created_at <= $3::TIMESTAMPTZ)
 ORDER BY account_version DESC
-LIMIT $2::INTEGER
+LIMIT $4::INTEGER
 `
 
 type BalanceHistoryParams struct {
-	AccountID string
-	RowLimit  int32
+	AccountID   string
+	CreatedFrom pgtype.Timestamptz
+	CreatedTo   pgtype.Timestamptz
+	RowLimit    int32
 }
 
 type BalanceHistoryRow struct {
@@ -163,7 +180,12 @@ type BalanceHistoryRow struct {
 }
 
 func (q *Queries) BalanceHistory(ctx context.Context, arg BalanceHistoryParams) ([]BalanceHistoryRow, error) {
-	rows, err := q.db.Query(ctx, balanceHistory, arg.AccountID, arg.RowLimit)
+	rows, err := q.db.Query(ctx, balanceHistory,
+		arg.AccountID,
+		arg.CreatedFrom,
+		arg.CreatedTo,
+		arg.RowLimit,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -360,11 +382,13 @@ WITH picked AS (
             OR t.to_account_id = $2::TEXT
         )
         AND ($3::TEXT = '' OR t.metadata ->> $3::TEXT = $4::TEXT)
+        AND ($5::TIMESTAMPTZ IS NULL OR t.created_at >= $5::TIMESTAMPTZ)
+        AND ($6::TIMESTAMPTZ IS NULL OR t.created_at <= $6::TIMESTAMPTZ)
     ORDER BY
         CASE WHEN $1::BOOLEAN THEN t.event_at ELSE t.created_at END DESC,
         t.created_at DESC,
         t.id DESC
-    LIMIT $5::INTEGER
+    LIMIT $7::INTEGER
 )
 
 SELECT
@@ -393,6 +417,8 @@ type GridEntriesParams struct {
 	AccountID    string
 	MetaKey      string
 	MetaValue    string
+	CreatedFrom  pgtype.Timestamptz
+	CreatedTo    pgtype.Timestamptz
 	MaxTransfers int32
 }
 
@@ -415,6 +441,8 @@ func (q *Queries) GridEntries(ctx context.Context, arg GridEntriesParams) ([]Gri
 		arg.AccountID,
 		arg.MetaKey,
 		arg.MetaValue,
+		arg.CreatedFrom,
+		arg.CreatedTo,
 		arg.MaxTransfers,
 	)
 	if err != nil {
@@ -560,16 +588,20 @@ WHERE
     )
     AND ($3::TEXT = '' OR e.account_id = $3::TEXT)
     AND ($4::TEXT = '' OR e.id < $4::TEXT)
+    AND ($5::TIMESTAMPTZ IS NULL OR e.created_at >= $5::TIMESTAMPTZ)
+    AND ($6::TIMESTAMPTZ IS NULL OR e.created_at <= $6::TIMESTAMPTZ)
 ORDER BY e.id DESC
-LIMIT $5::INTEGER
+LIMIT $7::INTEGER
 `
 
 type ListEntriesParams struct {
-	Prefix    string
-	Contains  string
-	AccountID string
-	Before    string
-	RowLimit  int32
+	Prefix      string
+	Contains    string
+	AccountID   string
+	Before      string
+	CreatedFrom pgtype.Timestamptz
+	CreatedTo   pgtype.Timestamptz
+	RowLimit    int32
 }
 
 type ListEntriesRow struct {
@@ -595,6 +627,8 @@ func (q *Queries) ListEntries(ctx context.Context, arg ListEntriesParams) ([]Lis
 		arg.Contains,
 		arg.AccountID,
 		arg.Before,
+		arg.CreatedFrom,
+		arg.CreatedTo,
 		arg.RowLimit,
 	)
 	if err != nil {

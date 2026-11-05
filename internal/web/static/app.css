@@ -310,6 +310,15 @@ header.top .github:hover {
   height: 160px;
   border-left: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
+  cursor: crosshair;
+  user-select: none;
+}
+.chart .selection {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--hover-strong);
+  pointer-events: none;
 }
 .balance-chart {
   width: 100%;
@@ -394,6 +403,9 @@ form.balance-at {
 }
 .balance-result {
   margin: 8px 0 0;
+}
+.zoom {
+  margin: 0 0 16px;
 }
 
 .flows {

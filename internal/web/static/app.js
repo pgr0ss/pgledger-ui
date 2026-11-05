@@ -156,8 +156,56 @@ function chartHover(plot) {
   });
 }
 
+// Balance chart drag: zoom the page to the selected created_at range.
+function chartZoom(plot) {
+  const points = JSON.parse(plot.dataset.chart);
+  const t0 = Date.parse(points[0].t);
+  const t1 = Date.parse(points[points.length - 1].t);
+  if (!(t1 > t0)) return;
+  const selection = plot.querySelector(".selection");
+  let start = null;
+
+  const frac = (e) => {
+    const rect = plot.getBoundingClientRect();
+    return Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
+  };
+  const draw = (a, b) => {
+    selection.style.left = `${Math.min(a, b) * 100}%`;
+    selection.style.width = `${Math.abs(b - a) * 100}%`;
+  };
+
+  plot.addEventListener("mousedown", (e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    start = frac(e);
+    draw(start, start);
+    selection.hidden = false;
+  });
+  window.addEventListener("mousemove", (e) => {
+    if (start !== null) draw(start, frac(e));
+  });
+  window.addEventListener("mouseup", (e) => {
+    if (start === null) return;
+    const end = frac(e);
+    const [a, b] = [Math.min(start, end), Math.max(start, end)];
+    start = null;
+    selection.hidden = true;
+    if ((b - a) * plot.getBoundingClientRect().width < 4) return;
+    const at = (f) => t0 + f * (t1 - t0);
+    const url = new URL(location.href);
+    url.searchParams.set("from", new Date(Math.floor(at(a))).toISOString());
+    // Entry times have microseconds but Date only milliseconds, so round the end up to keep the last selected entry.
+    url.searchParams.set("to", new Date(Math.floor(at(b)) + 1).toISOString());
+    url.searchParams.delete("before");
+    location.assign(url);
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   for (const form of document.querySelectorAll("form[data-live]")) liveSearch(form);
-  for (const plot of document.querySelectorAll(".plot[data-chart]")) chartHover(plot);
+  for (const plot of document.querySelectorAll(".plot[data-chart]")) {
+    chartHover(plot);
+    chartZoom(plot);
+  }
   applyTimezone(document);
 });

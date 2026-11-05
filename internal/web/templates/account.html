@@ -59,6 +59,7 @@
             {{end}}
             <polyline class="line" points="{{.Points}}"></polyline>
           </svg>
+          <div class="selection" hidden></div>
           <div class="guide" hidden></div>
           <div class="dot" hidden></div>
           <div class="readout" hidden></div>
@@ -74,9 +75,30 @@
       <figcaption class="muted">
         Balance ({{$a.Currency}}) · min {{.Min}} · max {{.Max}} · {{$.ChartCount}} entries
         {{if $.ChartCapped}}(most recent {{$.ChartCount}}){{end}}
-        since {{ts $.ChartFirst}}
+        since {{ts $.ChartFirst}} · drag across the chart to zoom
       </figcaption>
     </figure>
+  {{end}}
+  {{with .Zoom}}
+    <p class="zoom">
+      {{if .Invalid}}
+        <span class="neg">invalid range "{{.RawFrom}}" – "{{.RawTo}}"</span>
+      {{else}}
+        Showing
+        {{if .From.IsZero}}
+          the start
+        {{else}}
+          {{ts .From}}
+        {{end}}
+        –
+        {{if .To.IsZero}}
+          now
+        {{else}}
+          {{ts .To}}
+        {{end}}
+      {{end}}
+      · <a href="{{withoutParams $.URL "from" "to"}}">Reset zoom</a>
+    </p>
   {{end}}
   <section class="flows">
     <div class="in">
@@ -106,6 +128,12 @@
       <option value="event" {{if eq .Order "event"}}selected{{end}}>by event time</option>
     </select>
     <input type="hidden" name="view" value="{{.View}}">
+    {{with .Zoom}}
+      {{if not .Invalid}}
+        <input type="hidden" name="from" value="{{.RawFrom}}">
+        <input type="hidden" name="to" value="{{.RawTo}}">
+      {{end}}
+    {{end}}
     <button type="submit">Show</button>
   </form>
   {{with .BalanceAt}}

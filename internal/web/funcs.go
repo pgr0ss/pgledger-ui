@@ -22,6 +22,7 @@ var funcs = template.FuncMap{
 	"traceURL":        traceURL,
 	"accountsMetaURL": accountsMetaURL,
 	"withParam":       withParam,
+	"withoutParams":   withoutParams,
 	"pills":           func(md ledger.Metadata, hide string) pillsView { return pillsView{md, hide} },
 	"maxGrid":         func() int { return ledger.MaxGridTransfers },
 	"accountRef":      func(id, name string) accountRef { return accountRef{id, name} },
@@ -97,6 +98,18 @@ func withParam(u *url.URL, k, v string) string {
 	}
 	q.Set(k, v)
 	q.Del("partial")
+	return u.Path + "?" + q.Encode()
+}
+
+// withoutParams returns u without the keys, resetting keyset pagination.
+func withoutParams(u *url.URL, keys ...string) string {
+	q := u.Query()
+	for _, k := range append(keys, "before", "partial") {
+		q.Del(k)
+	}
+	if len(q) == 0 {
+		return u.Path
+	}
 	return u.Path + "?" + q.Encode()
 }
 

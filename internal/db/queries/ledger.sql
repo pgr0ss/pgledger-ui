@@ -118,6 +118,8 @@ WHERE
     )
     AND (sqlc.arg(account_id)::TEXT = '' OR e.account_id = sqlc.arg(account_id)::TEXT)
     AND (sqlc.arg(before)::TEXT = '' OR e.id < sqlc.arg(before)::TEXT)
+    AND (sqlc.narg(created_from)::TIMESTAMPTZ IS NULL OR e.created_at >= sqlc.narg(created_from)::TIMESTAMPTZ)
+    AND (sqlc.narg(created_to)::TIMESTAMPTZ IS NULL OR e.created_at <= sqlc.narg(created_to)::TIMESTAMPTZ)
 ORDER BY e.id DESC
 LIMIT sqlc.arg(row_limit)::INTEGER;
 
@@ -231,7 +233,10 @@ SELECT
     account_previous_balance::TEXT AS previous_balance,
     account_version
 FROM pgledger_entries_view
-WHERE account_id = sqlc.arg(account_id)::TEXT
+WHERE
+    account_id = sqlc.arg(account_id)::TEXT
+    AND (sqlc.narg(created_from)::TIMESTAMPTZ IS NULL OR created_at >= sqlc.narg(created_from)::TIMESTAMPTZ)
+    AND (sqlc.narg(created_to)::TIMESTAMPTZ IS NULL OR created_at <= sqlc.narg(created_to)::TIMESTAMPTZ)
 ORDER BY account_version DESC
 LIMIT sqlc.arg(row_limit)::INTEGER;
 
@@ -244,7 +249,10 @@ WITH flows AS (
         END AS counterparty_id,
         sum(t.amount) AS amount
     FROM pgledger_transfers_view t
-    WHERE t.from_account_id = sqlc.arg(account_id)::TEXT OR t.to_account_id = sqlc.arg(account_id)::TEXT
+    WHERE
+        (t.from_account_id = sqlc.arg(account_id)::TEXT OR t.to_account_id = sqlc.arg(account_id)::TEXT)
+        AND (sqlc.narg(created_from)::TIMESTAMPTZ IS NULL OR t.created_at >= sqlc.narg(created_from)::TIMESTAMPTZ)
+        AND (sqlc.narg(created_to)::TIMESTAMPTZ IS NULL OR t.created_at <= sqlc.narg(created_to)::TIMESTAMPTZ)
     GROUP BY incoming, counterparty_id
 ),
 
@@ -283,6 +291,8 @@ WITH picked AS (
             OR t.to_account_id = sqlc.arg(account_id)::TEXT
         )
         AND (sqlc.arg(meta_key)::TEXT = '' OR t.metadata ->> sqlc.arg(meta_key)::TEXT = sqlc.arg(meta_value)::TEXT)
+        AND (sqlc.narg(created_from)::TIMESTAMPTZ IS NULL OR t.created_at >= sqlc.narg(created_from)::TIMESTAMPTZ)
+        AND (sqlc.narg(created_to)::TIMESTAMPTZ IS NULL OR t.created_at <= sqlc.narg(created_to)::TIMESTAMPTZ)
     ORDER BY
         CASE WHEN sqlc.arg(by_event)::BOOLEAN THEN t.event_at ELSE t.created_at END DESC,
         t.created_at DESC,

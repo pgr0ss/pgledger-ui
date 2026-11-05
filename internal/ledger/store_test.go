@@ -164,23 +164,77 @@ func TestBalanceHistory(t *testing.T) {
 	receivables, err := s.GetAccount(ctx, r.Accounts["user1.receivables"])
 	require.NoError(t, err)
 
-	h, err := s.BalanceHistory(ctx, receivables.ID, ledger.ChartPoints)
+	h, err := s.BalanceHistory(ctx, receivables.ID, ledger.TimeRange{}, ledger.ChartPoints)
 	require.NoError(t, err)
 	assert.Equal(t, []string{"50.00", "100.00", "50.00", "0.50"}, balances(h.Points))
 	assert.Equal(t, "0.00", h.Start)
 	assert.True(t, h.Complete)
-	series := h.Series(receivables.CreatedAt)
+	series := h.Series(receivables.CreatedAt, time.Time{})
 	assert.Equal(t, []string{"0.00", "50.00", "100.00", "50.00", "0.50"}, balances(series))
 	assert.Equal(t, receivables.CreatedAt, series[0].At)
 
-	h, err = s.BalanceHistory(ctx, receivables.ID, 2)
+	h, err = s.BalanceHistory(ctx, receivables.ID, ledger.TimeRange{}, 2)
 	require.NoError(t, err)
 	assert.Equal(t, []string{"50.00", "0.50"}, balances(h.Points))
 	assert.Equal(t, "100.00", h.Start)
 	assert.False(t, h.Complete)
-	series = h.Series(receivables.CreatedAt)
+	series = h.Series(receivables.CreatedAt, time.Time{})
 	assert.Equal(t, []string{"100.00", "50.00", "0.50"}, balances(series))
 	assert.Equal(t, h.Points[0].At, series[0].At)
+
+	created := transfersCreated(t, s, r, 1, 2)
+	h, err = s.BalanceHistory(ctx, receivables.ID, created, ledger.ChartPoints)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"100.00", "50.00"}, balances(h.Points))
+	assert.Equal(t, "50.00", h.Start)
+	assert.True(t, h.Complete)
+	end := created.To.Add(time.Minute)
+	series = h.Series(created.From, end)
+	assert.Equal(t, []string{"50.00", "100.00", "50.00", "50.00"}, balances(series))
+	assert.Equal(t, created.From, series[0].At)
+	assert.Equal(t, end, series[3].At)
+}
+
+// transfersCreated spans the created_at of Recon transfers i through j.
+func transfersCreated(t *testing.T, s *ledger.Store, r testdb.ReconData, i, j int) ledger.TimeRange {
+	t.Helper()
+	from, err := s.GetTransfer(t.Context(), r.Transfers[i].ID)
+	require.NoError(t, err)
+	to, err := s.GetTransfer(t.Context(), r.Transfers[j].ID)
+	require.NoError(t, err)
+	return ledger.TimeRange{From: from.CreatedAt, To: to.CreatedAt}
+}
+
+func TestCreatedRangeFilters(t *testing.T) {
+	r, s := reconStore(t)
+	ctx := t.Context()
+	receivables := r.Accounts["user1.receivables"]
+	created := transfersCreated(t, s, r, 1, 2)
+
+	entries, _, err := s.ListEntries(ctx, ledger.EntryFilter{AccountID: receivables, Limit: ledger.PageSize})
+	require.NoError(t, err)
+	assert.Len(t, entries, 4)
+	entries, _, err = s.ListEntries(ctx, ledger.EntryFilter{AccountID: receivables, Created: created, Limit: ledger.PageSize})
+	require.NoError(t, err)
+	require.Len(t, entries, 2)
+	assert.Equal(t, []string{r.Transfers[2].ID, r.Transfers[1].ID}, []string{entries[0].TransferID, entries[1].TransferID})
+
+	grid, _, err := s.GridEntries(ctx, ledger.GridFilter{AccountID: receivables, Created: created}, ledger.OrderCreated, ledger.MaxGridTransfers)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"payment_created", "payment_received"}, gridKinds(grid))
+
+	f, err := s.AccountFlows(ctx, receivables, created, ledger.TopCounterparties)
+	require.NoError(t, err)
+	assert.Equal(t, "50.00", f.In)
+	assert.Equal(t, "50.00", f.Out)
+	assert.Equal(t, []string{"user1.available"}, counterpartyNames(f.TopOut))
+
+	f, err = s.AccountFlows(ctx, receivables, ledger.TimeRange{From: created.To.Add(time.Microsecond)}, ledger.TopCounterparties)
+	require.NoError(t, err)
+	assert.Equal(t, ledger.Flows{
+		In: "0", Out: "49.50",
+		TopOut: []ledger.Counterparty{{AccountID: r.Accounts["user1.available"], Name: "user1.available", Amount: "49.50"}},
+	}, f)
 }
 
 func TestAccountFlows(t *testing.T) {
@@ -200,7 +254,7 @@ func TestAccountFlows(t *testing.T) {
 	}
 	ab := r.Accounts["a_b"]
 
-	f, err := s.AccountFlows(ctx, ab, ledger.TopCounterparties)
+	f, err := s.AccountFlows(ctx, ab, ledger.TimeRange{}, ledger.TopCounterparties)
 	require.NoError(t, err)
 	assert.Equal(t, ledger.Flows{
 		In:  "12.00",
@@ -215,7 +269,7 @@ func TestAccountFlows(t *testing.T) {
 		},
 	}, f)
 
-	f, err = s.AccountFlows(ctx, ab, 1)
+	f, err = s.AccountFlows(ctx, ab, ledger.TimeRange{}, 1)
 	require.NoError(t, err)
 	assert.Equal(t, "12.00", f.In)
 	assert.Equal(t, "7.00", f.Out)
@@ -224,7 +278,7 @@ func TestAccountFlows(t *testing.T) {
 
 	a, err := q.CreateAccount(ctx, db.CreateAccountParams{Name: "idle", Currency: "USD"})
 	require.NoError(t, err)
-	f, err = s.AccountFlows(ctx, a, ledger.TopCounterparties)
+	f, err = s.AccountFlows(ctx, a, ledger.TimeRange{}, ledger.TopCounterparties)
 	require.NoError(t, err)
 	assert.Equal(t, ledger.Flows{In: "0", Out: "0"}, f)
 }

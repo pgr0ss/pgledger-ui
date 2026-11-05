@@ -102,7 +102,40 @@ type accountPage struct {
 	ChartFirst  time.Time
 	ChartCapped bool
 	Flows       ledger.Flows
+	Zoom        *zoom
 	BalanceAt   *balanceAt
+}
+
+// zoom is the created_at range picked by dragging across the balance chart.
+type zoom struct {
+	ledger.TimeRange
+	RawFrom, RawTo string
+	Invalid        bool
+}
+
+func parseZoom(r *http.Request) *zoom {
+	z := &zoom{RawFrom: r.FormValue("from"), RawTo: r.FormValue("to")}
+	if z.RawFrom == "" && z.RawTo == "" {
+		return nil
+	}
+	var ok bool
+	if z.RawFrom != "" {
+		if z.From, ok = parseAt(z.RawFrom); !ok {
+			z.Invalid = true
+		}
+	}
+	if z.RawTo != "" {
+		if z.To, ok = parseAt(z.RawTo); !ok {
+			z.Invalid = true
+		}
+	}
+	if !z.From.IsZero() && !z.To.IsZero() && z.To.Before(z.From) {
+		z.Invalid = true
+	}
+	if z.Invalid {
+		z.TimeRange = ledger.TimeRange{}
+	}
+	return z
 }
 
 var atLayouts = []string{"2006-01-02T15:04:05", "2006-01-02T15:04", time.RFC3339}
@@ -129,14 +162,23 @@ func (s *server) account(w http.ResponseWriter, r *http.Request) {
 		Account: acct,
 		View:    r.FormValue("view"),
 		Order:   ledger.ParseOrder(r.FormValue("order")),
+		Zoom:    parseZoom(r),
+	}
+	var created ledger.TimeRange
+	if p.Zoom != nil {
+		created = p.Zoom.TimeRange
 	}
 
-	hist, err := s.store.BalanceHistory(ctx, id, ledger.ChartPoints)
+	hist, err := s.store.BalanceHistory(ctx, id, created, ledger.ChartPoints)
 	if err != nil {
 		s.fail(w, r, err, id)
 		return
 	}
-	series := hist.Series(acct.CreatedAt)
+	start := acct.CreatedAt
+	if !created.From.IsZero() {
+		start = created.From
+	}
+	series := hist.Series(start, created.To)
 	if p.Chart, err = BuildChart(series, 600, 160); err != nil {
 		s.fail(w, r, err, id)
 		return
@@ -145,7 +187,7 @@ func (s *server) account(w http.ResponseWriter, r *http.Request) {
 		p.ChartCount, p.ChartFirst, p.ChartCapped = len(hist.Points), series[0].At, !hist.Complete
 	}
 
-	if p.Flows, err = s.store.AccountFlows(ctx, id, ledger.TopCounterparties); err != nil {
+	if p.Flows, err = s.store.AccountFlows(ctx, id, created, ledger.TopCounterparties); err != nil {
 		s.fail(w, r, err, id)
 		return
 	}
@@ -164,7 +206,7 @@ func (s *server) account(w http.ResponseWriter, r *http.Request) {
 
 	switch p.View {
 	case "crosstab", "inout":
-		entries, truncated, err := s.store.GridEntries(ctx, ledger.GridFilter{AccountID: id}, p.Order, ledger.MaxGridTransfers)
+		entries, truncated, err := s.store.GridEntries(ctx, ledger.GridFilter{AccountID: id, Created: created}, p.Order, ledger.MaxGridTransfers)
 		if err != nil {
 			s.fail(w, r, err, id)
 			return
@@ -179,7 +221,7 @@ func (s *server) account(w http.ResponseWriter, r *http.Request) {
 		p.View = "entries"
 		var more bool
 		p.Entries, more, err = s.store.ListEntries(ctx, ledger.EntryFilter{
-			AccountID: id, Before: r.FormValue("before"), Limit: ledger.PageSize,
+			AccountID: id, Before: r.FormValue("before"), Created: created, Limit: ledger.PageSize,
 		})
 		if err != nil {
 			s.fail(w, r, err, id)

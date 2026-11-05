@@ -123,6 +123,30 @@ func TestAccountPage(t *testing.T) {
 	assert.Contains(t, body, `Funds out <span class="amount">99.50</span> USD`)
 }
 
+func TestAccountZoom(t *testing.T) {
+	f := newFixture(t)
+	from, err := f.store.GetTransfer(t.Context(), f.Transfers[1].ID)
+	require.NoError(t, err)
+	to, err := f.store.GetTransfer(t.Context(), f.Transfers[2].ID)
+	require.NoError(t, err)
+	path := "/accounts/" + f.Accounts["user1.receivables"]
+	q := url.Values{
+		"from": {from.CreatedAt.UTC().Format(time.RFC3339Nano)},
+		"to":   {to.CreatedAt.UTC().Format(time.RFC3339Nano)},
+	}
+
+	status, body := f.get(t, path+"?"+q.Encode())
+	assert.Equal(t, http.StatusOK, status)
+	assert.Contains(t, body, `Funds in <span class="amount">50.00</span> USD`)
+	assert.Contains(t, body, `Funds out <span class="amount">50.00</span> USD`)
+	assert.Contains(t, body, `<a href="`+path+`">Reset zoom</a>`)
+	assert.Contains(t, body, `<input type="hidden" name="from" value="`+q.Get("from")+`">`)
+
+	_, body = f.get(t, path+"?from=garbage")
+	assert.Contains(t, body, `invalid range "garbage"`)
+	assert.Contains(t, body, `Funds in <span class="amount">100.00</span> USD`)
+}
+
 func TestAccountNotFound(t *testing.T) {
 	f := newFixture(t)
 	status, _ := f.get(t, "/accounts/"+f.Accounts["user1.receivables"])
