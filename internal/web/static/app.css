@@ -60,6 +60,8 @@ header.top .brand { font-weight: 700; color: var(--fg); }
 header.top nav { display: flex; gap: 14px; flex: 1; }
 header.top nav a { color: var(--muted); }
 header.top nav a.active { color: var(--fg); font-weight: 600; }
+header.top .github { display: inline-flex; color: var(--muted); }
+header.top .github:hover { color: var(--fg); }
 
 main { padding: 20px; max-width: 1600px; }
 
