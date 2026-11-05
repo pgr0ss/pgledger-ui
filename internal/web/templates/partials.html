@@ -184,3 +184,25 @@
     <th>metadata</th>
   </tr>
 {{end}}
+{{define "counterparties"}}
+  {{if .}}
+    <table class="list">
+      <thead>
+        <tr>
+          <th>top {{len .}} accounts</th>
+          <th class="num">amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .}}
+          <tr>
+            <td>{{template "acct" (accountRef .AccountID .Name)}}</td>
+            <td class="num amount">{{.Amount}}</td>
+          </tr>
+        {{end}}
+      </tbody>
+    </table>
+  {{else}}
+    <p class="muted">No transfers.</p>
+  {{end}}
+{{end}}

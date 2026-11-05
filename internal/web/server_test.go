@@ -119,6 +119,8 @@ func TestAccountPage(t *testing.T) {
 	assert.Equal(t, http.StatusOK, status)
 	assert.Contains(t, body, `<svg class="balance-chart"`)
 	assert.Contains(t, body, `<time datetime="`)
+	assert.Contains(t, body, `Funds in <span class="amount">100.00</span> USD`)
+	assert.Contains(t, body, `Funds out <span class="amount">99.50</span> USD`)
 }
 
 func TestAccountNotFound(t *testing.T) {

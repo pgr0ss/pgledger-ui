@@ -14,10 +14,11 @@ import (
 )
 
 const (
-	PageSize         = 50
-	SearchLimit      = 8
-	MaxGridTransfers = 500
-	ChartPoints      = 500
+	PageSize          = 50
+	SearchLimit       = 8
+	MaxGridTransfers  = 500
+	ChartPoints       = 500
+	TopCounterparties = 5
 )
 
 var ErrNotFound = errors.New("not found")
@@ -72,6 +73,17 @@ type Balance struct {
 type BalancePoint struct {
 	At      time.Time
 	Balance string
+}
+
+type Counterparty struct {
+	AccountID, Name, Amount string
+}
+
+// Flows are an account's all-time transfer totals in each direction, with the
+// counterparties that moved the most.
+type Flows struct {
+	In, Out       string
+	TopIn, TopOut []Counterparty
 }
 
 type GridEntry struct {
@@ -343,6 +355,23 @@ func (s *Store) BalanceHistory(ctx context.Context, accountID string, limit int)
 	oldest := rows[len(rows)-1]
 	h.Start, h.Complete = oldest.PreviousBalance, oldest.AccountVersion == 1
 	return h, nil
+}
+
+func (s *Store) AccountFlows(ctx context.Context, accountID string, top int) (Flows, error) {
+	rows, err := s.q.AccountFlows(ctx, db.AccountFlowsParams{AccountID: accountID, Top: int32(top)})
+	if err != nil {
+		return Flows{}, err
+	}
+	f := Flows{In: "0", Out: "0"}
+	for _, r := range rows {
+		c := Counterparty{AccountID: r.CounterpartyID, Name: r.CounterpartyName, Amount: r.Amount}
+		if r.Incoming {
+			f.In, f.TopIn = r.Total, append(f.TopIn, c)
+		} else {
+			f.Out, f.TopOut = r.Total, append(f.TopOut, c)
+		}
+	}
+	return f, nil
 }
 
 // GridEntries returns the entries of the most recent maxTransfers matching

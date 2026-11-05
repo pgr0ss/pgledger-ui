@@ -101,6 +101,7 @@ type accountPage struct {
 	ChartCount  int
 	ChartFirst  time.Time
 	ChartCapped bool
+	Flows       ledger.Flows
 	BalanceAt   *balanceAt
 }
 
@@ -142,6 +143,11 @@ func (s *server) account(w http.ResponseWriter, r *http.Request) {
 	}
 	if p.Chart != nil {
 		p.ChartCount, p.ChartFirst, p.ChartCapped = len(hist.Points), series[0].At, !hist.Complete
+	}
+
+	if p.Flows, err = s.store.AccountFlows(ctx, id, ledger.TopCounterparties); err != nil {
+		s.fail(w, r, err, id)
+		return
 	}
 
 	if raw := r.FormValue("at"); raw != "" {

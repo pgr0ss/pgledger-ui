@@ -11,8 +11,8 @@ pgledger-visualizer serve --db postgres://user:pass@host:5432/dbname
 Features:
 
 - Live search across accounts, transfers, entries and metadata. Every id and name is a link.
-- Account pages show a balance chart (axes, gridlines, hover readout), the balance at any time (as recorded or by event
-  time), and the account's entries.
+- Account pages show a balance chart (axes, gridlines, hover readout), total funds in and out with the top 5 accounts
+  each way, the balance at any time (as recorded or by event time), and the account's entries.
 - Trace: pick a transfer metadata key and value (e.g. `payment_id`) to follow money across accounts. A crosstab and an
   in/out grid put accounts in columns with time flowing downward.
 - A header toggle switches displayed times between UTC and your browser's timezone.

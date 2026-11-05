@@ -396,6 +396,22 @@ form.balance-at {
   margin: 8px 0 0;
 }
 
+.flows {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 0 24px;
+  margin: 0 0 16px;
+}
+.flows h2 {
+  margin-top: 0;
+}
+.flows .in .amount {
+  color: var(--pos);
+}
+.flows .out .amount {
+  color: var(--neg);
+}
+
 .grid-wrap {
   overflow: auto;
   max-height: 75vh;

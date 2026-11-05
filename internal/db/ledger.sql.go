@@ -10,6 +10,80 @@ import (
 	"time"
 )
 
+const accountFlows = `-- name: AccountFlows :many
+WITH flows AS (
+    SELECT
+        t.to_account_id = $2::TEXT AS incoming,
+        CASE
+            WHEN t.to_account_id = $2::TEXT THEN t.from_account_id ELSE t.to_account_id
+        END AS counterparty_id,
+        sum(t.amount) AS amount
+    FROM pgledger_transfers_view t
+    WHERE t.from_account_id = $2::TEXT OR t.to_account_id = $2::TEXT
+    GROUP BY incoming, counterparty_id
+),
+
+ranked AS (
+    SELECT
+        incoming,
+        counterparty_id,
+        amount,
+        sum(amount) OVER (PARTITION BY incoming) AS total,
+        row_number() OVER (PARTITION BY incoming ORDER BY amount DESC, counterparty_id ASC) AS place
+    FROM flows
+)
+
+SELECT
+    r.incoming,
+    r.counterparty_id::TEXT AS counterparty_id,
+    a.name AS counterparty_name,
+    r.amount::TEXT AS amount,
+    r.total::TEXT AS total
+FROM ranked r
+INNER JOIN pgledger_accounts_view a ON r.counterparty_id = a.id
+WHERE r.place <= $1::INTEGER
+ORDER BY r.incoming DESC, r.place ASC
+`
+
+type AccountFlowsParams struct {
+	Top       int32
+	AccountID string
+}
+
+type AccountFlowsRow struct {
+	Incoming         bool
+	CounterpartyID   string
+	CounterpartyName string
+	Amount           string
+	Total            string
+}
+
+func (q *Queries) AccountFlows(ctx context.Context, arg AccountFlowsParams) ([]AccountFlowsRow, error) {
+	rows, err := q.db.Query(ctx, accountFlows, arg.Top, arg.AccountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []AccountFlowsRow
+	for rows.Next() {
+		var i AccountFlowsRow
+		if err := rows.Scan(
+			&i.Incoming,
+			&i.CounterpartyID,
+			&i.CounterpartyName,
+			&i.Amount,
+			&i.Total,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const balanceAtCreated = `-- name: BalanceAtCreated :one
 SELECT
     account_current_balance::TEXT AS amount,

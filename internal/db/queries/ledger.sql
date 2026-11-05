@@ -235,6 +235,40 @@ WHERE account_id = sqlc.arg(account_id)::TEXT
 ORDER BY account_version DESC
 LIMIT sqlc.arg(row_limit)::INTEGER;
 
+-- name: AccountFlows :many
+WITH flows AS (
+    SELECT
+        t.to_account_id = sqlc.arg(account_id)::TEXT AS incoming,
+        CASE
+            WHEN t.to_account_id = sqlc.arg(account_id)::TEXT THEN t.from_account_id ELSE t.to_account_id
+        END AS counterparty_id,
+        sum(t.amount) AS amount
+    FROM pgledger_transfers_view t
+    WHERE t.from_account_id = sqlc.arg(account_id)::TEXT OR t.to_account_id = sqlc.arg(account_id)::TEXT
+    GROUP BY incoming, counterparty_id
+),
+
+ranked AS (
+    SELECT
+        incoming,
+        counterparty_id,
+        amount,
+        sum(amount) OVER (PARTITION BY incoming) AS total,
+        row_number() OVER (PARTITION BY incoming ORDER BY amount DESC, counterparty_id ASC) AS place
+    FROM flows
+)
+
+SELECT
+    r.incoming,
+    r.counterparty_id::TEXT AS counterparty_id,
+    a.name AS counterparty_name,
+    r.amount::TEXT AS amount,
+    r.total::TEXT AS total
+FROM ranked r
+INNER JOIN pgledger_accounts_view a ON r.counterparty_id = a.id
+WHERE r.place <= sqlc.arg(top)::INTEGER
+ORDER BY r.incoming DESC, r.place ASC;
+
 -- name: GridEntries :many
 WITH picked AS (
     SELECT

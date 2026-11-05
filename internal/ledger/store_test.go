@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/pgr0ss/pgledger_visualizer/internal/db"
 	"github.com/pgr0ss/pgledger_visualizer/internal/ledger"
 	"github.com/pgr0ss/pgledger_visualizer/internal/testdb"
 )
@@ -180,6 +181,60 @@ func TestBalanceHistory(t *testing.T) {
 	series = h.Series(receivables.CreatedAt)
 	assert.Equal(t, []string{"100.00", "50.00", "0.50"}, balances(series))
 	assert.Equal(t, h.Points[0].At, series[0].At)
+}
+
+func TestAccountFlows(t *testing.T) {
+	r, s := reconStore(t)
+	ctx := t.Context()
+	q := db.New(r.Admin)
+	for _, tr := range []struct{ from, to, amount string }{
+		{"user1.external", "a_b", "5.00"},
+		{"axb", "a_b", "7.00"},
+		{"a_b", "user1.available", "4.00"},
+	} {
+		_, err := q.CreateTransfer(ctx, db.CreateTransferParams{
+			FromAccountID: r.Accounts[tr.from], ToAccountID: r.Accounts[tr.to], Amount: tr.amount,
+			EventAt: time.Now(), Metadata: []byte(`{}`),
+		})
+		require.NoError(t, err)
+	}
+	ab := r.Accounts["a_b"]
+
+	f, err := s.AccountFlows(ctx, ab, ledger.TopCounterparties)
+	require.NoError(t, err)
+	assert.Equal(t, ledger.Flows{
+		In:  "12.00",
+		Out: "7.00",
+		TopIn: []ledger.Counterparty{
+			{AccountID: r.Accounts["axb"], Name: "axb", Amount: "7.00"},
+			{AccountID: r.Accounts["user1.external"], Name: "user1.external", Amount: "5.00"},
+		},
+		TopOut: []ledger.Counterparty{
+			{AccountID: r.Accounts["user1.available"], Name: "user1.available", Amount: "4.00"},
+			{AccountID: r.Accounts["axb"], Name: "axb", Amount: "3.00"},
+		},
+	}, f)
+
+	f, err = s.AccountFlows(ctx, ab, 1)
+	require.NoError(t, err)
+	assert.Equal(t, "12.00", f.In)
+	assert.Equal(t, "7.00", f.Out)
+	assert.Equal(t, []string{"axb"}, counterpartyNames(f.TopIn))
+	assert.Equal(t, []string{"user1.available"}, counterpartyNames(f.TopOut))
+
+	a, err := q.CreateAccount(ctx, db.CreateAccountParams{Name: "idle", Currency: "USD"})
+	require.NoError(t, err)
+	f, err = s.AccountFlows(ctx, a, ledger.TopCounterparties)
+	require.NoError(t, err)
+	assert.Equal(t, ledger.Flows{In: "0", Out: "0"}, f)
+}
+
+func counterpartyNames(cs []ledger.Counterparty) []string {
+	var names []string
+	for _, c := range cs {
+		names = append(names, c.Name)
+	}
+	return names
 }
 
 func TestGetNotFound(t *testing.T) {

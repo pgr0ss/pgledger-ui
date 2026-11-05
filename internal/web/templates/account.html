@@ -78,6 +78,20 @@
       </figcaption>
     </figure>
   {{end}}
+  <section class="flows">
+    <div class="in">
+      <h2>
+        Funds in <span class="amount">{{.Flows.In}}</span> {{$a.Currency}}
+      </h2>
+      {{template "counterparties" .Flows.TopIn}}
+    </div>
+    <div class="out">
+      <h2>
+        Funds out <span class="amount">{{.Flows.Out}}</span> {{$a.Currency}}
+      </h2>
+      {{template "counterparties" .Flows.TopOut}}
+    </div>
+  </section>
   <form action="/accounts/{{$a.ID}}" method="get" class="balance-at">
     <label>
       Balance at (<span data-tz-label>UTC</span>)
