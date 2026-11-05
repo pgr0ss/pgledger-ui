@@ -96,8 +96,8 @@ type GridEntry struct {
 type Order string
 
 const (
-	OrderCreated Order = "created"
-	OrderEvent   Order = "event"
+	OrderCreated Order = "created_at"
+	OrderEvent   Order = "event_at"
 )
 
 func ParseOrder(s string) Order {

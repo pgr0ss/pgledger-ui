@@ -124,8 +124,8 @@
              data-tz-input>
     </label>
     <select name="order">
-      <option value="created" {{if eq .Order "created"}}selected{{end}}>as recorded</option>
-      <option value="event" {{if eq .Order "event"}}selected{{end}}>by event time</option>
+      <option value="created_at" {{if eq .Order "created_at"}}selected{{end}}>created_at</option>
+      <option value="event_at" {{if eq .Order "event_at"}}selected{{end}}>event_at</option>
     </select>
     <input type="hidden" name="view" value="{{.View}}">
     {{with .Zoom}}

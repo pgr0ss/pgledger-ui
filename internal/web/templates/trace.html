@@ -19,7 +19,7 @@
           <tr>
             <th>transfer</th>
             <th>
-              {{if eq .Order "event"}}
+              {{if eq .Order "event_at"}}
                 event
               {{else}}
                 created
@@ -35,7 +35,7 @@
             <tr>
               <td><a href="/transfers/{{.ID}}">{{template "id" .ID}}</a></td>
               <td>
-                {{if eq $.Order "event"}}
+                {{if eq $.Order "event_at"}}
                   {{ts .EventAt}}
                 {{else}}
                   {{ts .CreatedAt}}

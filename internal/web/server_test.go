@@ -107,7 +107,7 @@ func TestAccountBalanceAt(t *testing.T) {
 	require.NoError(t, err)
 	at := received.CreatedAt.UTC().Format(time.RFC3339Nano)
 
-	status, body := f.get(t, "/accounts/"+f.Accounts["user1.receivables"]+"?order=created&at="+url.QueryEscape(at))
+	status, body := f.get(t, "/accounts/"+f.Accounts["user1.receivables"]+"?order=created_at&at="+url.QueryEscape(at))
 	assert.Equal(t, http.StatusOK, status)
 	assert.Contains(t, body, "(4 entries)")
 	assert.Contains(t, body, "0.50</span> USD</strong>")

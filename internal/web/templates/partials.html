@@ -42,12 +42,12 @@
 {{end}}
 {{define "orderToggle"}}
   <span class="toggle">Order:
-    <a href="{{withParam .URL "order" "created"}}"
-       class="{{if eq .Order "created"}}active{{end}}"
-       title="as recorded (created_at)">created</a>
-    <a href="{{withParam .URL "order" "event"}}"
-       class="{{if eq .Order "event"}}active{{end}}"
-       title="by event_at">event</a>
+    <a href="{{withParam .URL "order" "created_at"}}"
+       class="{{if eq .Order "created_at"}}active{{end}}"
+       title="as recorded">created_at</a>
+    <a href="{{withParam .URL "order" "event_at"}}"
+       class="{{if eq .Order "event_at"}}active{{end}}"
+       title="by event time">event_at</a>
   </span>
 {{end}}
 {{define "gridCell"}}
@@ -96,7 +96,7 @@
               <th class="label">
                 <a href="/transfers/{{.TransferID}}" title="{{.TransferID}}"><code>{{short .TransferID}}</code></a>
                 <span class="when">
-                  {{if eq $v.Order "event"}}
+                  {{if eq $v.Order "event_at"}}
                     {{ts .EventAt}}
                   {{else}}
                     {{ts .CreatedAt}}
