@@ -5,7 +5,9 @@ import (
 	"bytes"
 	"cmp"
 	"context"
+	"crypto/sha256"
 	"embed"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"html/template"
@@ -27,8 +29,9 @@ var staticFS embed.FS
 var pageNames = []string{"home", "search", "accounts", "account", "transfers", "transfer", "entries", "entry", "trace", "error"}
 
 type server struct {
-	store *ledger.Store
-	pages map[string]*template.Template
+	store  *ledger.Store
+	pages  map[string]*template.Template
+	assets map[string]string // static file name -> content hash
 }
 
 // base is embedded in every page's data.
@@ -39,18 +42,22 @@ type base struct {
 }
 
 func New(store *ledger.Store) (http.Handler, error) {
-	s := &server{store: store, pages: map[string]*template.Template{}}
+	static, err := fs.Sub(staticFS, "static")
+	if err != nil {
+		return nil, err
+	}
+	assets, err := hashAssets(static)
+	if err != nil {
+		return nil, err
+	}
+	s := &server{store: store, pages: map[string]*template.Template{}, assets: assets}
 	for _, name := range pageNames {
-		t, err := template.New(name).Funcs(funcs).ParseFS(templateFS,
+		t, err := template.New(name).Funcs(funcs).Funcs(template.FuncMap{"asset": s.asset}).ParseFS(templateFS,
 			"templates/layout.html", "templates/partials.html", "templates/"+name+".html")
 		if err != nil {
 			return nil, fmt.Errorf("parse %s: %w", name, err)
 		}
 		s.pages[name] = t
-	}
-	static, err := fs.Sub(staticFS, "static")
-	if err != nil {
-		return nil, err
 	}
 
 	mux := http.NewServeMux()
@@ -63,8 +70,45 @@ func New(store *ledger.Store) (http.Handler, error) {
 	mux.HandleFunc("GET /entries", s.entries)
 	mux.HandleFunc("GET /entries/{id}", s.entry)
 	mux.HandleFunc("GET /trace", s.trace)
-	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServerFS(static)))
+	mux.Handle("GET /static/", http.StripPrefix("/static/", s.cacheAssets(http.FileServerFS(static))))
 	return logRequests(mux), nil
+}
+
+func hashAssets(static fs.FS) (map[string]string, error) {
+	assets := map[string]string{}
+	err := fs.WalkDir(static, ".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
+			return err
+		}
+		b, err := fs.ReadFile(static, path)
+		if err != nil {
+			return err
+		}
+		sum := sha256.Sum256(b)
+		assets[path] = hex.EncodeToString(sum[:8])
+		return nil
+	})
+	return assets, err
+}
+
+// asset returns a URL for a static file that changes whenever its content does.
+func (s *server) asset(name string) (string, error) {
+	v, ok := s.assets[name]
+	if !ok {
+		return "", fmt.Errorf("unknown asset %q", name)
+	}
+	return "/static/" + name + "?v=" + v, nil
+}
+
+// cacheAssets lets browsers cache a static file forever when the request
+// carries its current content hash.
+func (s *server) cacheAssets(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if v := r.URL.Query().Get("v"); v != "" && v == s.assets[r.URL.Path] {
+			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 type statusRecorder struct {

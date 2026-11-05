@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -46,6 +47,23 @@ func (f fixture) get(t *testing.T, path string) (int, string) {
 	body, err := io.ReadAll(res.Body)
 	require.NoError(t, err)
 	return res.StatusCode, string(body)
+}
+
+func TestStaticAssetsCachedByContentHash(t *testing.T) {
+	f := newFixture(t)
+	_, body := f.get(t, "/")
+	m := regexp.MustCompile(`href="(/static/app\.css\?v=\w+)"`).FindStringSubmatch(body)
+	require.NotNil(t, m, body)
+
+	cacheControl := func(path string) string {
+		res, err := http.Get(f.srv.URL + path)
+		require.NoError(t, err)
+		_ = res.Body.Close()
+		require.Equal(t, http.StatusOK, res.StatusCode, path)
+		return res.Header.Get("Cache-Control")
+	}
+	assert.Equal(t, "public, max-age=31536000, immutable", cacheControl(m[1]))
+	assert.Empty(t, cacheControl("/static/app.css?v=stale"))
 }
 
 func TestTransferPage(t *testing.T) {
