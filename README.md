@@ -44,7 +44,9 @@ go run ./cmd/pgledger-visualizer serve --db postgres://pgledger:pgledger@localho
 
 - `pgledger-visualizer serve [--addr 127.0.0.1:8080] [--db URL]`: binds to loopback by default.
 - `pgledger-visualizer seed [--install-schema] [--users 20] [--seed 1] [--db URL]`: loads deterministic sample payment
-  flows into an empty database. `--install-schema` installs pgledger first if its views are missing.
+  flows into an empty database, spread over the last 30 days. pgledger stamps rows with `now()`, so the seed overwrites
+  `created_at` on the accounts, transfers and entries it creates. `--install-schema` installs pgledger first if its views
+  are missing.
 
 `--db` defaults to `$DATABASE_URL`.
 

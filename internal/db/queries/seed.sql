@@ -45,3 +45,26 @@ FROM
         event_at => sqlc.arg(event_at)::TIMESTAMPTZ,
         metadata => sqlc.narg(metadata)::JSONB
     );
+
+-- pgledger stamps rows with now(), so sample data overwrites created_at to spread it over time.
+-- name: BackdateTransfers :exec
+WITH transfers AS (
+    UPDATE pgledger_transfers SET created_at = sqlc.arg(created_at)::TIMESTAMPTZ
+    WHERE id = any(sqlc.arg(ids)::TEXT[])
+)
+
+UPDATE pgledger_entries SET created_at = sqlc.arg(created_at)::TIMESTAMPTZ
+WHERE transfer_id = any(sqlc.arg(ids)::TEXT[]);
+
+-- name: BackdateAccounts :exec
+UPDATE pgledger_accounts a
+SET
+    created_at = sqlc.arg(created_at)::TIMESTAMPTZ,
+    updated_at = coalesce(
+        (
+            SELECT max(e.created_at) FROM pgledger_entries e
+            WHERE e.account_id = a.id
+        ),
+        sqlc.arg(created_at)::TIMESTAMPTZ
+    )
+WHERE a.id = any(sqlc.arg(ids)::TEXT[]);

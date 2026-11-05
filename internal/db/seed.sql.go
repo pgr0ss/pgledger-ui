@@ -10,6 +10,51 @@ import (
 	"time"
 )
 
+const backdateAccounts = `-- name: BackdateAccounts :exec
+UPDATE pgledger_accounts a
+SET
+    created_at = $1::TIMESTAMPTZ,
+    updated_at = coalesce(
+        (
+            SELECT max(e.created_at) FROM pgledger_entries e
+            WHERE e.account_id = a.id
+        ),
+        $1::TIMESTAMPTZ
+    )
+WHERE a.id = any($2::TEXT[])
+`
+
+type BackdateAccountsParams struct {
+	CreatedAt time.Time
+	Ids       []string
+}
+
+func (q *Queries) BackdateAccounts(ctx context.Context, arg BackdateAccountsParams) error {
+	_, err := q.db.Exec(ctx, backdateAccounts, arg.CreatedAt, arg.Ids)
+	return err
+}
+
+const backdateTransfers = `-- name: BackdateTransfers :exec
+WITH transfers AS (
+    UPDATE pgledger_transfers SET created_at = $1::TIMESTAMPTZ
+    WHERE id = any($2::TEXT[])
+)
+
+UPDATE pgledger_entries SET created_at = $1::TIMESTAMPTZ
+WHERE transfer_id = any($2::TEXT[])
+`
+
+type BackdateTransfersParams struct {
+	CreatedAt time.Time
+	Ids       []string
+}
+
+// pgledger stamps rows with now(), so sample data overwrites created_at to spread it over time.
+func (q *Queries) BackdateTransfers(ctx context.Context, arg BackdateTransfersParams) error {
+	_, err := q.db.Exec(ctx, backdateTransfers, arg.CreatedAt, arg.Ids)
+	return err
+}
+
 const createAccount = `-- name: CreateAccount :one
 SELECT id
 FROM

@@ -79,6 +79,55 @@ func TestRun(t *testing.T) {
 	assert.ErrorContains(t, err, "sample data already present")
 }
 
+func TestRunBackdates(t *testing.T) {
+	t.Parallel()
+	_, admin := testdb.New(t)
+	_, err := run(t, admin)
+	require.NoError(t, err)
+	ctx := t.Context()
+
+	var first, last time.Time
+	require.NoError(t, admin.QueryRow(ctx,
+		`SELECT min(created_at), max(created_at) FROM pgledger_transfers_view`).Scan(&first, &last))
+	assert.False(t, first.Before(opts.Now.Add(-30*24*time.Hour)), first)
+	assert.False(t, last.After(opts.Now), last)
+	assert.Greater(t, last.Sub(first), 14*24*time.Hour)
+
+	var accountsCreated []time.Time
+	rows, err := admin.Query(ctx, `SELECT DISTINCT created_at FROM pgledger_accounts_view`)
+	require.NoError(t, err)
+	for rows.Next() {
+		var at time.Time
+		require.NoError(t, rows.Scan(&at))
+		accountsCreated = append(accountsCreated, at)
+	}
+	require.NoError(t, rows.Err())
+	require.Len(t, accountsCreated, 1)
+	assert.True(t, accountsCreated[0].Before(first))
+
+	var entries, mismatched, backwards, staleUpdatedAt int
+	require.NoError(t, admin.QueryRow(ctx, `
+		SELECT
+			count(*),
+			count(*) FILTER (WHERE e.created_at <> t.created_at),
+			count(*) FILTER (WHERE e.created_at < e.previous_created_at)
+		FROM (
+			SELECT *, lag(created_at) OVER (PARTITION BY account_id ORDER BY account_version) AS previous_created_at
+			FROM pgledger_entries_view
+		) e
+		INNER JOIN pgledger_transfers_view t ON e.transfer_id = t.id`).Scan(&entries, &mismatched, &backwards))
+	assert.Positive(t, entries)
+	assert.Zero(t, mismatched, "entries created_at differs from their transfer")
+	assert.Zero(t, backwards, "entry created_at goes backwards as account_version increases")
+
+	require.NoError(t, admin.QueryRow(ctx, `
+		SELECT count(*) FROM pgledger_accounts_view a
+		WHERE a.updated_at <> coalesce(
+			(SELECT max(e.created_at) FROM pgledger_entries_view e WHERE e.account_id = a.id), a.created_at)`,
+	).Scan(&staleUpdatedAt))
+	assert.Zero(t, staleUpdatedAt)
+}
+
 func TestRunIsDeterministic(t *testing.T) {
 	t.Parallel()
 	_, first := testdb.New(t)

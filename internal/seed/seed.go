@@ -45,6 +45,9 @@ type user struct {
 
 const day = 24 * time.Hour
 
+// accountsCreatedAt predates every planned step, which start at Now-30d.
+func accountsCreatedAt(now time.Time) time.Time { return now.Add(-30*day - time.Hour) }
+
 func Run(ctx context.Context, conn *pgx.Conn, opts Options) (Summary, error) {
 	var sum Summary
 	err := pgx.BeginFunc(ctx, conn, func(tx pgx.Tx) error {
@@ -69,6 +72,7 @@ func Run(ctx context.Context, conn *pgx.Conn, opts Options) (Summary, error) {
 			return errors.New("sample data already present (account liquidity.usd exists); use an empty database (mise run dbreset)")
 		}
 
+		var accountIDs []string
 		create := func(name, currency string, allowNegative bool, metadata map[string]string) (string, error) {
 			md, err := json.Marshal(metadata)
 			if err != nil {
@@ -81,6 +85,7 @@ func Run(ctx context.Context, conn *pgx.Conn, opts Options) (Summary, error) {
 				return "", fmt.Errorf("create account %s: %w", name, err)
 			}
 			sum.Accounts++
+			accountIDs = append(accountIDs, id)
 			return id, nil
 		}
 
@@ -138,7 +143,8 @@ func Run(ctx context.Context, conn *pgx.Conn, opts Options) (Summary, error) {
 		skipped := make([]bool, len(steps))
 		for _, i := range order {
 			s := steps[i]
-			if s.dependsOn >= 0 && skipped[s.dependsOn] {
+			// Steps after Now haven't happened yet: their payments stay in flight.
+			if s.at.After(opts.Now) || (s.dependsOn >= 0 && skipped[s.dependsOn]) {
 				skipped[i] = true
 				continue
 			}
@@ -158,26 +164,30 @@ func Run(ctx context.Context, conn *pgx.Conn, opts Options) (Summary, error) {
 			if err != nil {
 				return err
 			}
+			var ids []string
 			if s.from2 != "" {
-				ids, err := q.CreateFxTransfers(ctx, db.CreateFxTransfersParams{
+				if ids, err = q.CreateFxTransfers(ctx, db.CreateFxTransfersParams{
 					From1: s.from, To1: s.to, Amount1: money(s.cents),
 					From2: s.from2, To2: s.to2, Amount2: money(s.cents2),
 					EventAt: s.eventAt, Metadata: md,
-				})
-				if err != nil {
+				}); err != nil {
 					return fmt.Errorf("create fx transfers %s: %w", s.metadata["payment_id"], err)
 				}
-				sum.Transfers += len(ids)
-				continue
+			} else {
+				id, err := q.CreateTransfer(ctx, db.CreateTransferParams{
+					FromAccountID: s.from, ToAccountID: s.to, Amount: money(s.cents), EventAt: s.eventAt, Metadata: md,
+				})
+				if err != nil {
+					return fmt.Errorf("create transfer %s %s: %w", s.metadata["kind"], s.metadata["payment_id"], err)
+				}
+				ids = []string{id}
 			}
-			if _, err := q.CreateTransfer(ctx, db.CreateTransferParams{
-				FromAccountID: s.from, ToAccountID: s.to, Amount: money(s.cents), EventAt: s.eventAt, Metadata: md,
-			}); err != nil {
-				return fmt.Errorf("create transfer %s %s: %w", s.metadata["kind"], s.metadata["payment_id"], err)
+			if err := q.BackdateTransfers(ctx, db.BackdateTransfersParams{CreatedAt: s.at, Ids: ids}); err != nil {
+				return err
 			}
-			sum.Transfers++
+			sum.Transfers += len(ids)
 		}
-		return nil
+		return q.BackdateAccounts(ctx, db.BackdateAccountsParams{CreatedAt: accountsCreatedAt(opts.Now), Ids: accountIDs})
 	})
 	return sum, err
 }
