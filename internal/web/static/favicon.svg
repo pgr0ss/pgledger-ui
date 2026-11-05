@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <title>pgledger visualizer</title>
+  <style>
+    svg { color: #000; }
+    .paper { fill: #fff; stroke: #fff; }
+    @media (prefers-color-scheme: dark) {
+      svg { color: #fff; }
+      .paper { fill: #000; stroke: #000; }
+    }
+  </style>
+  <rect fill="none" stroke="currentColor" stroke-width="2.5" x="4.25" y="4.25" width="23.5" height="23.5" rx="2.5"/>
+  <path fill="currentColor" d="M6.75 3h18.5A3.75 3.75 0 0 1 29 6.75V8H3V6.75A3.75 3.75 0 0 1 6.75 3Z"/>
+  <path stroke="currentColor" stroke-width="2" d="M4 14.5h24M4 21h24M11.5 8v19.5"/>
+</svg>
