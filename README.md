@@ -27,8 +27,8 @@ mise run demo   # start Postgres on :5432, reset the pgledger_viz database, load
 Then open http://127.0.0.1:8080.
 
 To use a different port, put `POSTGRES_PORT=5455` in a gitignored `.env`. docker compose reads it directly, and mise loads
-it into every task, including `mise run test`. Setting `DATABASE_URL` overrides the URL used by `mise run seed` and
-`mise run serve`.
+it into every task, including `mise run test`. Setting `DATABASE_URL` overrides the URL used by `mise run seed`,
+`mise run serve` and `mise run dev`.
 
 ## Pointing at pgledger's example database
 
@@ -51,6 +51,7 @@ go run ./cmd/pgledger-viz serve --db postgres://pgledger:pgledger@localhost:5432
 ## Development
 
 - `mise tasks`: list every task.
+- `mise run dev`: like `mise run serve`, but restarts (via watchexec) when Go, SQL, template or static files change.
 - `mise run check`: format SQL, regenerate sqlc code, tidy, test and lint.
 - `mise run test`: needs Postgres (`mise run up`). Each test runs in its own schema. Set `TEST_DATABASE_URL` to use another
   server.

@@ -3,6 +3,7 @@ go = "1.27.3"
 uv = "0.13.7"             # backs the pipx: installer
 golangci-lint = "2.15.0"
 "pipx:sqlfluff" = "4.5.0"
+watchexec = "2.8.0"
 
 [env]
 _.file = ".env"
@@ -25,6 +26,10 @@ run = 'go run ./cmd/pgledger-viz seed --install-schema --db "${DATABASE_URL:-pos
 [tasks.serve]
 description = "Run the visualizer; extra args go to `serve`"
 run = 'go run ./cmd/pgledger-viz serve --db "${DATABASE_URL:-postgres://pgledger:pgledger@localhost:${POSTGRES_PORT:-5432}/pgledger_viz}"'
+
+[tasks.dev]
+description = "Like serve, but restarts when Go, SQL, template or static files change; extra args go to `serve`"
+run = 'watchexec --restart --shell=none --exts go,sql,html,css,js -- go run ./cmd/pgledger-viz serve --db "${DATABASE_URL:-postgres://pgledger:pgledger@localhost:${POSTGRES_PORT:-5432}/pgledger_viz}"'
 
 [tasks.demo]
 description = "Fresh database, sample data, then serve"
