@@ -66,6 +66,15 @@ func TestStaticAssetsCachedByContentHash(t *testing.T) {
 	assert.Empty(t, cacheControl("/static/app.css?v=stale"))
 }
 
+func TestStaticServesOnlyFiles(t *testing.T) {
+	f := newFixture(t)
+	status, _ := f.get(t, "/static/app.css")
+	require.Equal(t, http.StatusOK, status)
+
+	status, body := f.get(t, "/static/")
+	assert.Equal(t, http.StatusNotFound, status, body)
+}
+
 func TestTransferPage(t *testing.T) {
 	f := newFixture(t)
 	status, body := f.get(t, "/transfers/"+f.Transfer(t, "p_123", "payment_created").ID)

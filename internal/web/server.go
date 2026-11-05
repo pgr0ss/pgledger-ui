@@ -70,7 +70,7 @@ func New(store *ledger.Store) (http.Handler, error) {
 	mux.HandleFunc("GET /entries", s.entries)
 	mux.HandleFunc("GET /entries/{id}", s.entry)
 	mux.HandleFunc("GET /trace", s.trace)
-	mux.Handle("GET /static/", http.StripPrefix("/static/", s.cacheAssets(http.FileServerFS(static))))
+	mux.Handle("GET /static/", http.StripPrefix("/static/", s.serveAssets(http.FileServerFS(static))))
 	return logRequests(mux), nil
 }
 
@@ -100,11 +100,17 @@ func (s *server) asset(name string) (string, error) {
 	return "/static/" + name + "?v=" + v, nil
 }
 
-// cacheAssets lets browsers cache a static file forever when the request
-// carries its current content hash.
-func (s *server) cacheAssets(next http.Handler) http.Handler {
+// serveAssets serves only embedded files, never directory listings, and lets
+// browsers cache a file forever when the request carries its current content
+// hash.
+func (s *server) serveAssets(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if v := r.URL.Query().Get("v"); v != "" && v == s.assets[r.URL.Path] {
+		hash, ok := s.assets[r.URL.Path]
+		if !ok {
+			http.NotFound(w, r)
+			return
+		}
+		if r.URL.Query().Get("v") == hash {
 			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 		}
 		next.ServeHTTP(w, r)
