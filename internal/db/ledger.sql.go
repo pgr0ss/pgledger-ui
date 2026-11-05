@@ -153,6 +153,7 @@ func (q *Queries) BalanceAtEvent(ctx context.Context, arg BalanceAtEventParams) 
 const balanceHistory = `-- name: BalanceHistory :many
 SELECT
     created_at,
+    transfer_id,
     account_current_balance::TEXT AS balance,
     account_previous_balance::TEXT AS previous_balance,
     account_version
@@ -174,6 +175,7 @@ type BalanceHistoryParams struct {
 
 type BalanceHistoryRow struct {
 	CreatedAt       time.Time
+	TransferID      string
 	Balance         string
 	PreviousBalance string
 	AccountVersion  int64
@@ -195,6 +197,7 @@ func (q *Queries) BalanceHistory(ctx context.Context, arg BalanceHistoryParams) 
 		var i BalanceHistoryRow
 		if err := rows.Scan(
 			&i.CreatedAt,
+			&i.TransferID,
 			&i.Balance,
 			&i.PreviousBalance,
 			&i.AccountVersion,

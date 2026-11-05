@@ -229,6 +229,7 @@ WHERE account_id = sqlc.arg(account_id)::TEXT AND event_at <= sqlc.arg(at)::TIME
 -- name: BalanceHistory :many
 SELECT
     created_at,
+    transfer_id,
     account_current_balance::TEXT AS balance,
     account_previous_balance::TEXT AS previous_balance,
     account_version

@@ -63,6 +63,7 @@
           <div class="guide" hidden></div>
           <div class="dot" hidden></div>
           <div class="readout" hidden></div>
+          <a class="hit" aria-label="open this entry's transfer"></a>
         </div>
         {{/* djlint:off H021 */}}
         <div class="x-axis">
@@ -75,7 +76,7 @@
       <figcaption class="muted">
         Balance ({{$a.Currency}}) · min {{.Min}} · max {{.Max}} · {{$.ChartCount}} entries
         {{if $.ChartCapped}}(most recent {{$.ChartCount}}){{end}}
-        since {{template "ts" $.ChartFirst}} · drag across the chart to zoom
+        since {{template "ts" $.ChartFirst}} · click a point to open its transfer · drag across the chart to zoom
       </figcaption>
     </figure>
   {{end}}

@@ -186,6 +186,7 @@ func TestBalanceHistory(t *testing.T) {
 	h, err = s.BalanceHistory(ctx, receivables.ID, created, ledger.ChartPoints)
 	require.NoError(t, err)
 	assert.Equal(t, []string{"100.00", "50.00"}, balances(h.Points))
+	assert.Equal(t, []string{r.Transfers[1].ID, r.Transfers[2].ID}, []string{h.Points[0].TransferID, h.Points[1].TransferID})
 	assert.Equal(t, "50.00", h.Start)
 	assert.True(t, h.Complete)
 	end := created.To.Add(time.Minute)

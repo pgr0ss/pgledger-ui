@@ -133,17 +133,29 @@ function toggleColumn(e, on) {
 document.addEventListener("mouseover", (e) => toggleColumn(e, true));
 document.addEventListener("mouseout", (e) => toggleColumn(e, false));
 
-// Balance chart hover: snap to the nearest entry and show its balance.
+// Pointer travel, in pixels, below which a press and release is a click rather than a drag.
+const clickSlop = 4;
+
+// The point nearest the pointer; on ties the later one, so an entry wins over the balance drawn just before it.
+function nearestPoint(plot, points, e) {
+  const rect = plot.getBoundingClientRect();
+  const x = ((e.clientX - rect.left) / rect.width) * 100;
+  let p = points[0];
+  for (const q of points) if (Math.abs(q.x - x) <= Math.abs(p.x - x)) p = q;
+  return p;
+}
+
+// Balance chart hover: snap to the nearest entry and show its balance. The plot's
+// link points at that entry's transfer, so clicks, including into a new tab, open it.
 function chartHover(plot) {
   const points = JSON.parse(plot.dataset.chart);
-  const [guide, dot, readout] = ["guide", "dot", "readout"].map((c) => plot.querySelector(`.${c}`));
+  const [guide, dot, readout, link] = ["guide", "dot", "readout", "hit"].map((c) => plot.querySelector(`.${c}`));
   const currency = plot.closest(".chart").dataset.currency || "";
 
   plot.addEventListener("mousemove", (e) => {
-    const rect = plot.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    let p = points[0];
-    for (const q of points) if (Math.abs(q.x - x) < Math.abs(p.x - x)) p = q;
+    const p = nearestPoint(plot, points, e);
+    if (p.id) link.href = `/transfers/${encodeURIComponent(p.id)}`;
+    else link.removeAttribute("href");
     guide.style.left = dot.style.left = `${p.x}%`;
     dot.style.top = `${p.y}%`;
     readout.textContent = `${p.b} ${currency} · ${formatTime(new Date(p.t), tzMode() === "local")}`;
@@ -153,6 +165,14 @@ function chartHover(plot) {
   });
   plot.addEventListener("mouseleave", () => {
     guide.hidden = dot.hidden = readout.hidden = true;
+  });
+
+  let downX = null;
+  plot.addEventListener("mousedown", (e) => {
+    downX = e.clientX;
+  });
+  plot.addEventListener("click", (e) => {
+    if (downX !== null && Math.abs(e.clientX - downX) >= clickSlop) e.preventDefault();
   });
 }
 
@@ -190,7 +210,7 @@ function chartZoom(plot) {
     const [a, b] = [Math.min(start, end), Math.max(start, end)];
     start = null;
     selection.hidden = true;
-    if ((b - a) * plot.getBoundingClientRect().width < 4) return;
+    if ((b - a) * plot.getBoundingClientRect().width < clickSlop) return;
     const at = (f) => t0 + f * (t1 - t0);
     const url = new URL(location.href);
     url.searchParams.set("from", new Date(Math.floor(at(a))).toISOString());

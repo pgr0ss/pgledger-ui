@@ -39,7 +39,9 @@ func yLabels(c *web.Chart) []string {
 }
 
 func TestBuildChart(t *testing.T) {
-	c, err := web.BuildChart(points(hours(3), "0", "50", "25"), 600, 80)
+	pts := points(hours(3), "0", "50", "25")
+	pts[1].TransferID, pts[2].TransferID = "xfr_1", "xfr_2"
+	c, err := web.BuildChart(pts, 600, 80)
 	require.NoError(t, err)
 	assert.Equal(t, "0.0,80.0 300.0,80.0 300.0,13.3 600.0,13.3 600.0,46.7", c.Points)
 	assert.False(t, c.HasZero)
@@ -65,8 +67,8 @@ func TestBuildChart(t *testing.T) {
 
 	assert.JSONEq(t, `[
 		{"x": 0, "y": 100, "b": "0", "t": "2026-01-01T00:00:00Z"},
-		{"x": 50, "y": 16.666666666666664, "b": "50", "t": "2026-01-01T01:00:00Z"},
-		{"x": 100, "y": 58.333333333333336, "b": "25", "t": "2026-01-01T02:00:00Z"}
+		{"x": 50, "y": 16.666666666666664, "b": "50", "t": "2026-01-01T01:00:00Z", "id": "xfr_1"},
+		{"x": 100, "y": 58.333333333333336, "b": "25", "t": "2026-01-01T02:00:00Z", "id": "xfr_2"}
 	]`, c.Data)
 }
 
