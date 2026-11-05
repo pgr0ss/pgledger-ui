@@ -55,8 +55,8 @@ go run ./cmd/pgledger-viz serve --db postgres://pgledger:pgledger@localhost:5432
 - `mise run sync-pgledger [dir]`: copy pgledger's schema files from `../pgledger` (or `dir`) into `internal/pgschema/sql`.
   Then run `mise run generate`, which re-checks every query against the new schema.
 
-All SQL lives in `internal/db/queries/*.sql`. sqlc compiles it into typed Go in `internal/db`, and sqlfluff formats and
-lints it with pgledger's config.
+All SQL lives in `internal/db/queries/*.sql`. sqlc (a `go tool` pinned in `go.mod`) compiles it into typed Go in
+`internal/db`, and sqlfluff formats and lints it with pgledger's config.
 
 Stack: Go with pgx, `html/template`, about 130 lines of vanilla JS and hand-written CSS, all embedded in one binary. No npm
 and no build step.

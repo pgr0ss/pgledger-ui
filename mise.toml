@@ -3,7 +3,6 @@ go = "1.27.3"
 uv = "0.13.5"              # backs the pipx: installer
 golangci-lint = "2.15.0"
 "pipx:sqlfluff" = "4.4.0"
-sqlc = "1.31.1"
 
 [tasks.up]
 description = "Start Postgres"
@@ -32,11 +31,11 @@ run = [{ task = "up" }, { task = "dbreset" }, { task = "seed" }, { task = "serve
 run = "go test -race ./..."
 
 [tasks.generate]
-run = "sqlc generate"
+run = "go tool sqlc generate"
 
 [tasks.sqlc-check]
 description = "Fail if queries don't compile or generated code is stale"
-run = ["sqlc compile", "sqlc diff"]
+run = ["go tool sqlc compile", "go tool sqlc diff"]
 
 [tasks.lint-sql]
 run = "sqlfluff lint"
