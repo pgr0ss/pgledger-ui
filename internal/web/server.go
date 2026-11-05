@@ -100,9 +100,9 @@ func (s *server) asset(name string) (string, error) {
 	return "/static/" + name + "?v=" + v, nil
 }
 
-// serveAssets serves only embedded files, never directory listings, and lets
-// browsers cache a file forever when the request carries its current content
-// hash.
+// serveAssets serves only embedded files, never directory listings. Each file
+// gets its content hash as an ETag, and browsers may cache it forever when the
+// request carries that hash.
 func (s *server) serveAssets(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		hash, ok := s.assets[r.URL.Path]
@@ -110,6 +110,7 @@ func (s *server) serveAssets(next http.Handler) http.Handler {
 			http.NotFound(w, r)
 			return
 		}
+		w.Header().Set("ETag", `"`+hash+`"`)
 		if r.URL.Query().Get("v") == hash {
 			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 		}

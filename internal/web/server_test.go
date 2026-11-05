@@ -66,6 +66,27 @@ func TestStaticAssetsCachedByContentHash(t *testing.T) {
 	assert.Empty(t, cacheControl("/static/app.css?v=stale"))
 }
 
+func TestStaticAssetsRevalidateByETag(t *testing.T) {
+	f := newFixture(t)
+	res, err := http.Get(f.srv.URL + "/static/app.js")
+	require.NoError(t, err)
+	_ = res.Body.Close()
+	etag := res.Header.Get("ETag")
+	require.NotEmpty(t, etag)
+
+	revalidate := func(etag string) int {
+		req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, f.srv.URL+"/static/app.js", nil)
+		require.NoError(t, err)
+		req.Header.Set("If-None-Match", etag)
+		res, err := http.DefaultClient.Do(req)
+		require.NoError(t, err)
+		_ = res.Body.Close()
+		return res.StatusCode
+	}
+	assert.Equal(t, http.StatusNotModified, revalidate(etag))
+	assert.Equal(t, http.StatusOK, revalidate(`"stale"`))
+}
+
 func TestStaticServesOnlyFiles(t *testing.T) {
 	f := newFixture(t)
 	status, _ := f.get(t, "/static/app.css")
