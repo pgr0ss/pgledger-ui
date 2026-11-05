@@ -36,9 +36,9 @@
               <td><a href="/transfers/{{.ID}}">{{template "id" .ID}}</a></td>
               <td>
                 {{if eq $.Order "event_at"}}
-                  {{ts .EventAt}}
+                  {{template "ts" .EventAt}}
                 {{else}}
-                  {{ts .CreatedAt}}
+                  {{template "ts" .CreatedAt}}
                 {{end}}
               </td>
               <td>{{template "acct" (accountRef .FromID .FromName)}} → {{template "acct" (accountRef .ToID .ToName)}}</td>
@@ -107,8 +107,8 @@
             <tr>
               <td><a href="{{traceURL $.Key .Value}}">{{.Value}}</a></td>
               <td class="num">{{.Transfers}}</td>
-              <td>{{ts .First}}</td>
-              <td>{{ts .Last}}</td>
+              <td>{{template "ts" .First}}</td>
+              <td>{{template "ts" .Last}}</td>
             </tr>
           {{end}}
         </tbody>

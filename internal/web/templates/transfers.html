@@ -26,8 +26,8 @@
         {{range .Transfers}}
           <tr>
             <td><a href="/transfers/{{.ID}}">{{template "id" .ID}}</a></td>
-            <td>{{ts .CreatedAt}}</td>
-            <td>{{ts .EventAt}}</td>
+            <td>{{template "ts" .CreatedAt}}</td>
+            <td>{{template "ts" .EventAt}}</td>
             <td>{{template "acct" (accountRef .FromAccountID .FromName)}} → {{template "acct" (accountRef .ToAccountID .ToName)}}</td>
             <td class="num">{{.Amount}} <span class="muted">{{.Currency}}</span></td>
             <td>{{template "pills" pills .Metadata ""}}</td>

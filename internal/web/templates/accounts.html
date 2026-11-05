@@ -37,7 +37,7 @@
             <td class="num">{{template "amount" .Balance}}</td>
             <td class="num">{{.Version}}</td>
             <td>{{template "id" .ID}}</td>
-            <td>{{ts .CreatedAt}}</td>
+            <td>{{template "ts" .CreatedAt}}</td>
           </tr>
         {{end}}
       </tbody>

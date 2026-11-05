@@ -1,6 +1,8 @@
 {{define "acct"}}<a href="/accounts/{{.ID}}" title="{{.ID}}">{{.Name}}</a>{{end}}
 {{define "id"}}<code title="{{.}}">{{short .}}</code>{{end}}
 {{define "amount"}}<span class="amount {{signClass .}}">{{.}}</span>{{end}}
+{{define "ts"}}<time datetime="{{isoTime .}}">{{tsText .}}</time>{{end}}
+{{define "tsMinute"}}<time datetime="{{isoTime .}}" data-fmt="minute">{{tsMinuteText .}}</time>{{end}}
 {{define "pills"}}
   {{$hide := .Hide}}
   {{with .Metadata}}
@@ -97,9 +99,9 @@
                 <a href="/transfers/{{.TransferID}}" title="{{.TransferID}}"><code>{{short .TransferID}}</code></a>
                 <span class="when">
                   {{if eq $v.Order "event_at"}}
-                    {{ts .EventAt}}
+                    {{template "ts" .EventAt}}
                   {{else}}
-                    {{ts .CreatedAt}}
+                    {{template "ts" .CreatedAt}}
                   {{end}}
                 </span>
                 {{template "pills" pills .Metadata $v.HideKey}}
@@ -162,7 +164,7 @@
   {{range .}}
     <tr>
       <td><a href="/entries/{{.ID}}">{{template "id" .ID}}</a></td>
-      <td>{{ts .CreatedAt}}</td>
+      <td>{{template "ts" .CreatedAt}}</td>
       <td>{{template "acct" (accountRef .AccountID .AccountName)}}</td>
       <td class="num">{{template "amount" .Amount}}</td>
       <td class="num">{{.PreviousBalance}} → {{.CurrentBalance}}</td>

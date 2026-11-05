@@ -24,11 +24,11 @@
     </dd>
     <dt>created</dt>
     <dd>
-      {{ts $a.CreatedAt}}
+      {{template "ts" $a.CreatedAt}}
     </dd>
     <dt>updated</dt>
     <dd>
-      {{ts $a.UpdatedAt}}
+      {{template "ts" $a.UpdatedAt}}
     </dd>
     <dt>metadata</dt>
     <dd>
@@ -67,7 +67,7 @@
         {{/* djlint:off H021 */}}
         <div class="x-axis">
           {{range .XTicks}}
-            <span class="{{.Align}}" style="left: {{.Pos}}%">{{tsMinute .At}}</span>
+            <span class="{{.Align}}" style="left: {{.Pos}}%">{{template "tsMinute" .At}}</span>
           {{end}}
         </div>
         {{/* djlint:on */}}
@@ -75,7 +75,7 @@
       <figcaption class="muted">
         Balance ({{$a.Currency}}) · min {{.Min}} · max {{.Max}} · {{$.ChartCount}} entries
         {{if $.ChartCapped}}(most recent {{$.ChartCount}}){{end}}
-        since {{ts $.ChartFirst}} · drag across the chart to zoom
+        since {{template "ts" $.ChartFirst}} · drag across the chart to zoom
       </figcaption>
     </figure>
   {{end}}
@@ -88,13 +88,13 @@
         {{if .From.IsZero}}
           the start
         {{else}}
-          {{ts .From}}
+          {{template "ts" .From}}
         {{end}}
         –
         {{if .To.IsZero}}
           now
         {{else}}
-          {{ts .To}}
+          {{template "ts" .To}}
         {{end}}
       {{end}}
       · <a href="{{withoutParams $.URL "from" "to"}}">Reset zoom</a>
@@ -141,7 +141,7 @@
       {{if .Invalid}}
         <span class="neg">invalid time "{{.Raw}}"</span>
       {{else}}
-        Balance at {{ts .At}}:
+        Balance at {{template "ts" .At}}:
         <strong>{{template "amount" .Balance.Amount}} {{$a.Currency}}</strong>
         ({{.Balance.Entries}} entries)
         {{if .Balance.EntryID}}
@@ -178,7 +178,7 @@
         <tbody>
           {{range .Entries}}
             <tr>
-              <td>{{ts .CreatedAt}}</td>
+              <td>{{template "ts" .CreatedAt}}</td>
               <td class="num">{{template "amount" .Amount}}</td>
               <td class="num">{{.PreviousBalance}} → {{.CurrentBalance}}</td>
               <td>{{template "acct" (accountRef .CounterpartyID .CounterpartyName)}}</td>
