@@ -75,6 +75,31 @@ func TestRun(t *testing.T) {
 		`SELECT count(DISTINCT metadata ->> 'payment_id') FROM pgledger_transfers_view`).Scan(&payments))
 	assert.GreaterOrEqual(t, payments, 8)
 
+	rows, err = admin.Query(t.Context(), `
+		SELECT DISTINCT
+			t.metadata ->> 'from_currency' || '->' || (t.metadata ->> 'to_currency'),
+			regexp_replace(fa.name, '^user\d+\.', '') || ' -> ' || regexp_replace(ta.name, '^user\d+\.', ''),
+			fa.currency
+		FROM pgledger_transfers_view t
+		INNER JOIN pgledger_accounts_view fa ON t.from_account_id = fa.id
+		INNER JOIN pgledger_accounts_view ta ON t.to_account_id = ta.id
+		WHERE t.metadata ->> 'kind' = 'fx'
+		ORDER BY 1, 2`)
+	require.NoError(t, err)
+	var legs [][3]string
+	for rows.Next() {
+		var leg [3]string
+		require.NoError(t, rows.Scan(&leg[0], &leg[1], &leg[2]))
+		legs = append(legs, leg)
+	}
+	require.NoError(t, rows.Err())
+	assert.Equal(t, [][3]string{
+		{"EUR->USD", "eur.available -> liquidity.eur", "EUR"},
+		{"EUR->USD", "liquidity.usd -> available", "USD"},
+		{"USD->EUR", "available -> liquidity.usd", "USD"},
+		{"USD->EUR", "liquidity.eur -> eur.available", "EUR"},
+	}, legs)
+
 	_, err = run(t, admin)
 	assert.ErrorContains(t, err, "sample data already present")
 }

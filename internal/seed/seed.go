@@ -252,15 +252,29 @@ func plan(users []user, opts Options, liquidityUSD, liquidityEUR, fees string) [
 				})
 			}
 			if u.eurAvailable != "" && chance(50) {
-				fxs++
-				x := received / 2
-				md := meta("fx")
-				md["fx_id"] = fmt.Sprintf("fx_%05d", fxs)
-				add(step{
-					at: receivedAt.Add(hours(1, 24)), from: u.available, to: liquidityUSD, cents: x,
-					from2: liquidityEUR, to2: u.eurAvailable, cents2: x * 92 / 100,
-					metadata: md, dependsOn: -1, debitsBalance: true,
+				fxMeta := func(from, to string) map[string]string {
+					fxs++
+					md := meta("fx")
+					md["fx_id"] = fmt.Sprintf("fx_%05d", fxs)
+					md["from_currency"], md["to_currency"] = from, to
+					return md
+				}
+				fxAt := receivedAt.Add(hours(1, 24))
+				usd := received / 2
+				eur := usd * 92 / 100
+				toEUR := add(step{
+					at: fxAt, from: u.available, to: liquidityUSD, cents: usd,
+					from2: liquidityEUR, to2: u.eurAvailable, cents2: eur,
+					metadata: fxMeta("USD", "EUR"), dependsOn: -1, debitsBalance: true,
 				})
+				if chance(50) {
+					back := 1 + rng.Int64N(eur)
+					add(step{
+						at: fxAt.Add(hours(1, 72)), from: u.eurAvailable, to: liquidityEUR, cents: back,
+						from2: liquidityUSD, to2: u.available, cents2: back * 100 / 92,
+						metadata: fxMeta("EUR", "USD"), dependsOn: toEUR, debitsBalance: true,
+					})
+				}
 			}
 		}
 	}
