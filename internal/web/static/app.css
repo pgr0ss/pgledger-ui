@@ -132,7 +132,7 @@ a.pill:hover { border-color: var(--accent); text-decoration: none; }
 .balance-chart .tick { stroke: var(--border); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .balance-chart .zero { stroke: var(--muted); stroke-dasharray: 4 4; stroke-width: 1; vector-effect: non-scaling-stroke; }
 .balance-chart .line { fill: none; stroke: var(--accent); stroke-width: 2; vector-effect: non-scaling-stroke; }
-.chart .x-axis { position: relative; height: 20px; }
+.chart .x-axis { grid-column: 2; position: relative; height: 20px; }
 .chart .x-axis span { position: absolute; top: 4px; font: 11px var(--mono); color: var(--muted); white-space: nowrap; }
 .chart .x-axis .middle { transform: translateX(-50%); }
 .chart .x-axis .end { transform: translateX(-100%); }

@@ -1,29 +1,52 @@
 {{define "content"}}
-<h1>Accounts</h1>
-<form action="/accounts" method="get" class="search" data-live="#results">
-  <input type="search" name="q" value="{{.Q}}" placeholder="name, id, or metadata" autofocus>
-  {{if .Key}}<input type="hidden" name="key" value="{{.Key}}"><input type="hidden" name="value" value="{{.Value}}">{{end}}
-</form>
-{{if .Key}}<p>Metadata <span class="pill"><b>{{.Key}}</b> {{.Value}}</span> <a href="/accounts">clear</a></p>{{end}}
-<div id="results">{{template "results" .}}</div>
+  <h1>Accounts</h1>
+  <form action="/accounts" method="get" class="search" data-live="#results">
+    <input type="search"
+           name="q"
+           value="{{.Q}}"
+           placeholder="name, id, or metadata"
+           autofocus>
+    {{if .Key}}
+      <input type="hidden" name="key" value="{{.Key}}">
+      <input type="hidden" name="value" value="{{.Value}}">
+    {{end}}
+  </form>
+  {{if .Key}}
+    <p>Metadata <span class="pill"><b>{{.Key}}</b> {{.Value}}</span> <a href="/accounts">clear</a></p>
+  {{end}}
+  <div id="results">{{template "results" .}}</div>
 {{end}}
-
 {{define "results"}}
-{{if .Accounts}}
-<table class="list">
-  <thead><tr><th>name</th><th>currency</th><th class="num">balance</th><th class="num">version</th><th>id</th><th>created</th></tr></thead>
-  <tbody>{{range .Accounts}}<tr>
-    <td>{{template "acct" (accountRef .ID .Name)}}</td>
-    <td>{{.Currency}}</td>
-    <td class="num">{{template "amount" .Balance}}</td>
-    <td class="num">{{.Version}}</td>
-    <td>{{template "id" .ID}}</td>
-    <td>{{ts .CreatedAt}}</td>
-  </tr>{{end}}</tbody>
-</table>
-{{else}}<p class="muted">No accounts.</p>{{end}}
-<p class="pager">
-  {{if .HasPrev}}<a href="{{withParam .URL "offset" (print .Prev)}}">← Previous</a>{{end}}
-  {{if .HasNext}}<a href="{{withParam .URL "offset" (print .Next)}}">Next →</a>{{end}}
-</p>
+  {{if .Accounts}}
+    <table class="list">
+      <thead>
+        <tr>
+          <th>name</th>
+          <th>currency</th>
+          <th class="num">balance</th>
+          <th class="num">version</th>
+          <th>id</th>
+          <th>created</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Accounts}}
+          <tr>
+            <td>{{template "acct" (accountRef .ID .Name)}}</td>
+            <td>{{.Currency}}</td>
+            <td class="num">{{template "amount" .Balance}}</td>
+            <td class="num">{{.Version}}</td>
+            <td>{{template "id" .ID}}</td>
+            <td>{{ts .CreatedAt}}</td>
+          </tr>
+        {{end}}
+      </tbody>
+    </table>
+  {{else}}
+    <p class="muted">No accounts.</p>
+  {{end}}
+  <p class="pager">
+    {{if .HasPrev}}<a href="{{withParam .URL "offset" (print .Prev)}}">← Previous</a>{{end}}
+    {{if .HasNext}}<a href="{{withParam .URL "offset" (print .Next)}}">Next →</a>{{end}}
+  </p>
 {{end}}

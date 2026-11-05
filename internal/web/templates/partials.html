@@ -1,88 +1,186 @@
 {{define "acct"}}<a href="/accounts/{{.ID}}" title="{{.ID}}">{{.Name}}</a>{{end}}
-
 {{define "id"}}<code title="{{.}}">{{short .}}</code>{{end}}
-
-{{define "pills"}}{{$hide := .Hide}}{{with .Metadata}}<span class="pills">
-{{- if .Fields}}{{range .Fields}}{{if ne .Key $hide}}
-  {{- if .Traceable}}<a class="pill" href="{{traceURL .Key .Value}}" title="trace {{.Key}} = {{.Value}}"><b>{{.Key}}</b> {{.Value}}</a>
-  {{- else}}<span class="pill"><b>{{.Key}}</b> {{.Value}}</span>{{end}}
-{{- end}}{{end}}
-{{- else if .Raw}}<span class="pill raw">{{.Raw}}</span>{{end -}}
-</span>{{end}}{{end}}
-
-{{define "accountPills"}}<span class="pills">
-{{- if .Fields}}{{range .Fields}}
-  {{- if .Traceable}}<a class="pill" href="{{accountsMetaURL .Key .Value}}" title="accounts with {{.Key}} = {{.Value}}"><b>{{.Key}}</b> {{.Value}}</a>
-  {{- else}}<span class="pill"><b>{{.Key}}</b> {{.Value}}</span>{{end}}
-{{- end}}
-{{- else if .Raw}}<span class="pill raw">{{.Raw}}</span>{{end -}}
-</span>{{end}}
-
 {{define "amount"}}<span class="amount {{signClass .}}">{{.}}</span>{{end}}
-
-{{define "orderToggle"}}<span class="toggle">Order:
-  <a href="{{withParam .URL "order" "created"}}"{{if eq .Order "created"}} class="active"{{end}} title="as recorded (created_at)">created</a>
-  <a href="{{withParam .URL "order" "event"}}"{{if eq .Order "event"}} class="active"{{end}} title="by event_at">event</a>
-</span>{{end}}
-
-{{define "grid"}}{{$v := .}}{{$g := .Grid}}
-{{if $g.Truncated}}<p class="banner">Showing the most recent {{maxGrid}} transfers</p>{{end}}
-{{if not $g.Rows}}<p class="muted">No transfers.</p>{{else}}
-<div class="grid-wrap">
-<table class="grid {{$v.View}}">
-<thead>
-  <tr>
-    <th class="label"{{if eq $v.View "inout"}} rowspan="2"{{end}}>transfer</th>
-    {{range $i, $c := $g.Columns}}<th data-col="{{$i}}"{{if eq $v.View "inout"}} colspan="2"{{end}}><a href="/accounts/{{$c.AccountID}}" title="{{$c.AccountID}}">{{$c.Name}}</a> <span class="muted">{{$c.Currency}}</span></th>{{end}}
-  </tr>
-  {{if eq $v.View "inout"}}<tr class="sub">
-    {{range $i, $c := $g.Columns}}<th data-col="{{$i}}">+ in</th><th data-col="{{$i}}">− out</th>{{end}}
-  </tr>{{end}}
-</thead>
-<tbody>
-{{range $g.Rows}}<tr>
-  <th class="label">
-    <a href="/transfers/{{.TransferID}}" title="{{.TransferID}}"><code>{{short .TransferID}}</code></a>
-    <span class="when">{{if eq $v.Order "event"}}{{ts .EventAt}}{{else}}{{ts .CreatedAt}}{{end}}</span>
-    {{template "pills" pills .Metadata $v.HideKey}}
-  </th>
-  {{range $i, $c := .Cells}}
-    {{- if eq $v.View "inout"}}
-      <td data-col="{{$i}}" class="{{if eq $c.Sign 1}}cell pos{{end}}">{{if eq $c.Sign 1}}<a href="/entries/{{$c.EntryID}}" title="balance after: {{$c.BalanceAfter}}">{{$c.Amount}}</a>{{end}}</td>
-      <td data-col="{{$i}}" class="{{if eq $c.Sign -1}}cell neg{{end}}">{{if eq $c.Sign -1}}<a href="/entries/{{$c.EntryID}}" title="balance after: {{$c.BalanceAfter}}">{{$c.Amount}}</a>{{end}}</td>
-    {{- else}}
-      <td data-col="{{$i}}" class="{{if eq $c.Sign 1}}cell pos{{else if eq $c.Sign -1}}cell neg{{end}}">{{if $c.EntryID}}<a href="/entries/{{$c.EntryID}}" title="balance after: {{$c.BalanceAfter}}">{{$c.Amount}}</a>{{end}}</td>
-    {{- end}}
+{{define "pills"}}
+  {{$hide := .Hide}}
+  {{with .Metadata}}
+    <span class="pills">
+      {{if .Fields}}
+        {{range .Fields}}
+          {{if ne .Key $hide}}
+            {{if .Traceable}}
+              <a class="pill"
+                 href="{{traceURL .Key .Value}}"
+                 title="trace {{.Key}} = {{.Value}}"><b>{{.Key}}</b> {{.Value}}</a>
+            {{else}}
+              <span class="pill"><b>{{.Key}}</b> {{.Value}}</span>
+            {{end}}
+          {{end}}
+        {{end}}
+      {{else if .Raw}}
+        <span class="pill raw">{{.Raw}}</span>
+      {{end}}
+    </span>
   {{end}}
-</tr>
 {{end}}
-</tbody>
-<tfoot>
-{{if eq $v.View "inout"}}
-  <tr><th class="label">In</th>{{range $i, $t := $g.Totals}}<td data-col="{{$i}}" class="pos">{{$t.In}}</td><td data-col="{{$i}}"></td>{{end}}</tr>
-  <tr><th class="label">Out</th>{{range $i, $t := $g.Totals}}<td data-col="{{$i}}"></td><td data-col="{{$i}}" class="neg">{{$t.Out}}</td>{{end}}</tr>
-  <tr><th class="label">Net</th>{{range $i, $t := $g.Totals}}<td data-col="{{$i}}" colspan="2" class="{{signClass $t.Net}}">{{$t.Net}}</td>{{end}}</tr>
-{{else}}
-  <tr><th class="label">SUMS</th>{{range $i, $t := $g.Totals}}<td data-col="{{$i}}" class="{{signClass $t.Net}}">{{$t.Net}}</td>{{end}}</tr>
+{{define "accountPills"}}
+  <span class="pills">
+    {{if .Fields}}
+      {{range .Fields}}
+        {{if .Traceable}}
+          <a class="pill"
+             href="{{accountsMetaURL .Key .Value}}"
+             title="accounts with {{.Key}} = {{.Value}}"><b>{{.Key}}</b> {{.Value}}</a>
+        {{else}}
+          <span class="pill"><b>{{.Key}}</b> {{.Value}}</span>
+        {{end}}
+      {{end}}
+    {{else if .Raw}}
+      <span class="pill raw">{{.Raw}}</span>
+    {{end}}
+  </span>
 {{end}}
-</tfoot>
-</table>
-</div>
+{{define "orderToggle"}}
+  <span class="toggle">Order:
+    <a href="{{withParam .URL "order" "created"}}"
+       class="{{if eq .Order "created"}}active{{end}}"
+       title="as recorded (created_at)">created</a>
+    <a href="{{withParam .URL "order" "event"}}"
+       class="{{if eq .Order "event"}}active{{end}}"
+       title="by event_at">event</a>
+  </span>
 {{end}}
+{{define "gridCell"}}
+  {{if .EntryID}}
+    <a href="/entries/{{.EntryID}}" title="balance after: {{.BalanceAfter}}">{{.Amount}}</a>
+  {{end}}
 {{end}}
-
+{{define "grid"}}
+  {{$v := .}}
+  {{$g := .Grid}}
+  {{$inout := eq $v.View "inout"}}
+  {{$span := 1}}
+  {{if $inout}}
+    {{$span = 2}}
+  {{end}}
+  {{if $g.Truncated}}
+    <p class="banner">Showing the most recent {{maxGrid}} transfers</p>
+  {{end}}
+  {{if not $g.Rows}}
+    <p class="muted">No transfers.</p>
+  {{else}}
+    <div class="grid-wrap">
+      <table class="grid {{$v.View}}">
+        <thead>
+          <tr>
+            <th class="label" rowspan="{{$span}}">transfer</th>
+            {{range $i, $c := $g.Columns}}
+              <th data-col="{{$i}}" colspan="{{$span}}">
+                <a href="/accounts/{{$c.AccountID}}" title="{{$c.AccountID}}">{{$c.Name}}</a>
+                <span class="muted">{{$c.Currency}}</span>
+              </th>
+            {{end}}
+          </tr>
+          {{if $inout}}
+            <tr class="sub">
+              {{range $i, $c := $g.Columns}}
+                <th data-col="{{$i}}">+ in</th>
+                <th data-col="{{$i}}">− out</th>
+              {{end}}
+            </tr>
+          {{end}}
+        </thead>
+        <tbody>
+          {{range $g.Rows}}
+            <tr>
+              <th class="label">
+                <a href="/transfers/{{.TransferID}}" title="{{.TransferID}}"><code>{{short .TransferID}}</code></a>
+                <span class="when">
+                  {{if eq $v.Order "event"}}
+                    {{ts .EventAt}}
+                  {{else}}
+                    {{ts .CreatedAt}}
+                  {{end}}
+                </span>
+                {{template "pills" pills .Metadata $v.HideKey}}
+              </th>
+              {{range $i, $c := .Cells}}
+                {{if $inout}}
+                  {{if eq $c.Sign 1}}
+                    <td data-col="{{$i}}" class="cell pos">{{template "gridCell" $c}}</td>
+                    <td data-col="{{$i}}"></td>
+                  {{else if eq $c.Sign -1}}
+                    <td data-col="{{$i}}"></td>
+                    <td data-col="{{$i}}" class="cell neg">{{template "gridCell" $c}}</td>
+                  {{else}}
+                    <td data-col="{{$i}}"></td>
+                    <td data-col="{{$i}}"></td>
+                  {{end}}
+                {{else}}
+                  <td data-col="{{$i}}" class="{{cellClass $c.Sign}}">{{template "gridCell" $c}}</td>
+                {{end}}
+              {{end}}
+            </tr>
+          {{end}}
+        </tbody>
+        <tfoot>
+          {{if $inout}}
+            <tr>
+              <th class="label">In</th>
+              {{range $i, $t := $g.Totals}}
+                <td data-col="{{$i}}" class="pos">{{$t.In}}</td>
+                <td data-col="{{$i}}"></td>
+              {{end}}
+            </tr>
+            <tr>
+              <th class="label">Out</th>
+              {{range $i, $t := $g.Totals}}
+                <td data-col="{{$i}}"></td>
+                <td data-col="{{$i}}" class="neg">{{$t.Out}}</td>
+              {{end}}
+            </tr>
+            <tr>
+              <th class="label">Net</th>
+              {{range $i, $t := $g.Totals}}
+                <td data-col="{{$i}}" colspan="2" class="{{signClass $t.Net}}">{{$t.Net}}</td>
+              {{end}}
+            </tr>
+          {{else}}
+            <tr>
+              <th class="label">SUMS</th>
+              {{range $i, $t := $g.Totals}}
+                <td data-col="{{$i}}" class="{{signClass $t.Net}}">{{$t.Net}}</td>
+              {{end}}
+            </tr>
+          {{end}}
+        </tfoot>
+      </table>
+    </div>
+  {{end}}
+{{end}}
 {{define "entryRows"}}
-{{range .}}<tr>
-  <td><a href="/entries/{{.ID}}">{{template "id" .ID}}</a></td>
-  <td>{{ts .CreatedAt}}</td>
-  <td>{{template "acct" (accountRef .AccountID .AccountName)}}</td>
-  <td class="num">{{template "amount" .Amount}}</td>
-  <td class="num">{{.PreviousBalance}} → {{.CurrentBalance}}</td>
-  <td>{{template "acct" (accountRef .CounterpartyID .CounterpartyName)}}</td>
-  <td><a href="/transfers/{{.TransferID}}">{{template "id" .TransferID}}</a></td>
-  <td>{{template "pills" pills .Metadata ""}}</td>
-</tr>
+  {{range .}}
+    <tr>
+      <td><a href="/entries/{{.ID}}">{{template "id" .ID}}</a></td>
+      <td>{{ts .CreatedAt}}</td>
+      <td>{{template "acct" (accountRef .AccountID .AccountName)}}</td>
+      <td class="num">{{template "amount" .Amount}}</td>
+      <td class="num">{{.PreviousBalance}} → {{.CurrentBalance}}</td>
+      <td>{{template "acct" (accountRef .CounterpartyID .CounterpartyName)}}</td>
+      <td><a href="/transfers/{{.TransferID}}">{{template "id" .TransferID}}</a></td>
+      <td>{{template "pills" pills .Metadata ""}}</td>
+    </tr>
+  {{end}}
 {{end}}
+{{define "entryHead"}}
+  <tr>
+    <th>id</th>
+    <th>created</th>
+    <th>account</th>
+    <th class="num">amount</th>
+    <th class="num">prev → current balance</th>
+    <th>counterparty</th>
+    <th>transfer</th>
+    <th>metadata</th>
+  </tr>
 {{end}}
-
-{{define "entryHead"}}<tr><th>id</th><th>created</th><th>account</th><th class="num">amount</th><th class="num">prev → current balance</th><th>counterparty</th><th>transfer</th><th>metadata</th></tr>{{end}}

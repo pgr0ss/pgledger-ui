@@ -1,6 +1,7 @@
 {{define "content"}}
-<h1>{{.Title}}</h1>
-{{template "results" .}}
+  <h1>{{.Title}}</h1>
+  {{template "results" .}}
 {{end}}
-
-{{define "results"}}<p class="error">{{.Message}}</p>{{end}}
+{{define "results"}}
+  <p class="error">{{.Message}}</p>
+{{end}}

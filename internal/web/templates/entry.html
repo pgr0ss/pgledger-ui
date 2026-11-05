@@ -1,15 +1,45 @@
 {{define "content"}}{{$e := .Entry}}
-<h1>Entry <code>{{short $e.ID}}</code></h1>
-<dl class="fields">
-  <dt>id</dt><dd><code>{{$e.ID}}</code></dd>
-  <dt>account</dt><dd>{{template "acct" (accountRef $e.AccountID $e.AccountName)}} <span class="muted">{{$e.Currency}}</span></dd>
-  <dt>amount</dt><dd>{{template "amount" $e.Amount}} {{$e.Currency}}</dd>
-  <dt>balance</dt><dd>{{$e.PreviousBalance}} → {{$e.CurrentBalance}}</dd>
-  <dt>account version</dt><dd>{{$e.AccountVersion}}</dd>
-  <dt>transfer</dt><dd><a href="/transfers/{{$e.TransferID}}"><code>{{$e.TransferID}}</code></a></dd>
-  <dt>counterparty</dt><dd>{{template "acct" (accountRef $e.CounterpartyID $e.CounterpartyName)}}</dd>
-  <dt>created</dt><dd>{{ts $e.CreatedAt}}</dd>
-  <dt>event</dt><dd>{{ts $e.EventAt}}</dd>
-  <dt>metadata</dt><dd>{{template "pills" pills $e.Metadata ""}}</dd>
-</dl>
+  <h1>Entry <code>{{short $e.ID}}</code></h1>
+  <dl class="fields">
+    <dt>id</dt>
+    <dd>
+      <code>{{$e.ID}}</code>
+    </dd>
+    <dt>account</dt>
+    <dd>
+      {{template "acct" (accountRef $e.AccountID $e.AccountName)}} <span class="muted">{{$e.Currency}}</span>
+    </dd>
+    <dt>amount</dt>
+    <dd>
+      {{template "amount" $e.Amount}} {{$e.Currency}}
+    </dd>
+    <dt>balance</dt>
+    <dd>
+      {{$e.PreviousBalance}} → {{$e.CurrentBalance}}
+    </dd>
+    <dt>account version</dt>
+    <dd>
+      {{$e.AccountVersion}}
+    </dd>
+    <dt>transfer</dt>
+    <dd>
+      <a href="/transfers/{{$e.TransferID}}"><code>{{$e.TransferID}}</code></a>
+    </dd>
+    <dt>counterparty</dt>
+    <dd>
+      {{template "acct" (accountRef $e.CounterpartyID $e.CounterpartyName)}}
+    </dd>
+    <dt>created</dt>
+    <dd>
+      {{ts $e.CreatedAt}}
+    </dd>
+    <dt>event</dt>
+    <dd>
+      {{ts $e.EventAt}}
+    </dd>
+    <dt>metadata</dt>
+    <dd>
+      {{template "pills" pills $e.Metadata ""}}
+    </dd>
+  </dl>
 {{end}}

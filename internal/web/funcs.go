@@ -18,6 +18,7 @@ var funcs = template.FuncMap{
 	"ts":              ts,
 	"tsMinute":        tsMinute,
 	"signClass":       signClass,
+	"cellClass":       cellClass,
 	"traceURL":        traceURL,
 	"accountsMetaURL": accountsMetaURL,
 	"withParam":       withParam,
@@ -64,6 +65,18 @@ func signClass(amount string) string {
 		return "zero"
 	default:
 		return "pos"
+	}
+}
+
+// cellClass styles a grid cell by its entry's sign; empty cells get none.
+func cellClass(sign int) string {
+	switch sign {
+	case 1:
+		return "cell pos"
+	case -1:
+		return "cell neg"
+	default:
+		return ""
 	}
 }
 

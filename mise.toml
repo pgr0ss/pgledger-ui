@@ -3,6 +3,7 @@ go = "1.27.3"
 uv = "0.13.7"             # backs the pipx: installer
 golangci-lint = "2.15.0"
 "pipx:sqlfluff" = "4.5.0"
+"pipx:djlint" = "1.49.9"
 watchexec = "2.8.0"
 
 [env]
@@ -56,6 +57,13 @@ run = "sqlfluff lint"
 [tasks.format-sql]
 run = "sqlfluff format"
 
+[tasks.lint-html]
+description = "Lint templates and fail if any need reformatting"
+run = "djlint internal/web/templates --lint --check"
+
+[tasks.format-html]
+run = "djlint internal/web/templates --reformat"
+
 [tasks.golangci-lint]
 run = "golangci-lint run"
 
@@ -63,12 +71,13 @@ run = "golangci-lint run"
 run = "go mod tidy -diff"
 
 [tasks.lint]
-depends = ["lint-sql", "sqlc-check", "golangci-lint", "tidy-check"]
+depends = ["lint-sql", "lint-html", "sqlc-check", "golangci-lint", "tidy-check"]
 
 [tasks.check]
 description = "Format, regenerate, tidy, test, lint (local pre-commit)"
 run = [
   { task = "format-sql" },
+  { task = "format-html" },
   { task = "generate" },
   "go mod tidy",
   { task = "test" },

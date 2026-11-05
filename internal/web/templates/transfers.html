@@ -1,24 +1,44 @@
 {{define "content"}}
-<h1>Transfers</h1>
-<form action="/transfers" method="get" class="search" data-live="#results">
-  <input type="search" name="q" value="{{.Q}}" placeholder="id, account name, or metadata" autofocus>
-</form>
-<div id="results">{{template "results" .}}</div>
+  <h1>Transfers</h1>
+  <form action="/transfers" method="get" class="search" data-live="#results">
+    <input type="search"
+           name="q"
+           value="{{.Q}}"
+           placeholder="id, account name, or metadata"
+           autofocus>
+  </form>
+  <div id="results">{{template "results" .}}</div>
 {{end}}
-
 {{define "results"}}
-{{if .Transfers}}
-<table class="list">
-  <thead><tr><th>id</th><th>created</th><th>event</th><th>from → to</th><th class="num">amount</th><th>metadata</th></tr></thead>
-  <tbody>{{range .Transfers}}<tr>
-    <td><a href="/transfers/{{.ID}}">{{template "id" .ID}}</a></td>
-    <td>{{ts .CreatedAt}}</td>
-    <td>{{ts .EventAt}}</td>
-    <td>{{template "acct" (accountRef .FromAccountID .FromName)}} → {{template "acct" (accountRef .ToAccountID .ToName)}}</td>
-    <td class="num">{{.Amount}} <span class="muted">{{.Currency}}</span></td>
-    <td>{{template "pills" pills .Metadata ""}}</td>
-  </tr>{{end}}</tbody>
-</table>
-{{if .Before}}<p class="pager"><a href="{{withParam .URL "before" .Before}}">Older →</a></p>{{end}}
-{{else}}<p class="muted">No transfers.</p>{{end}}
+  {{if .Transfers}}
+    <table class="list">
+      <thead>
+        <tr>
+          <th>id</th>
+          <th>created</th>
+          <th>event</th>
+          <th>from → to</th>
+          <th class="num">amount</th>
+          <th>metadata</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Transfers}}
+          <tr>
+            <td><a href="/transfers/{{.ID}}">{{template "id" .ID}}</a></td>
+            <td>{{ts .CreatedAt}}</td>
+            <td>{{ts .EventAt}}</td>
+            <td>{{template "acct" (accountRef .FromAccountID .FromName)}} → {{template "acct" (accountRef .ToAccountID .ToName)}}</td>
+            <td class="num">{{.Amount}} <span class="muted">{{.Currency}}</span></td>
+            <td>{{template "pills" pills .Metadata ""}}</td>
+          </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{if .Before}}
+      <p class="pager"><a href="{{withParam .URL "before" .Before}}">Older →</a></p>
+    {{end}}
+  {{else}}
+    <p class="muted">No transfers.</p>
+  {{end}}
 {{end}}

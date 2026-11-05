@@ -1,15 +1,18 @@
 {{define "content"}}
-<section class="hero">
-  <h1>pgledger visualizer</h1>
-  <form action="/search" method="get" class="search big">
-    <input type="search" name="q" placeholder="Search accounts, transfers, entries, metadata… (press /)" autofocus>
-    <button type="submit">Search</button>
-  </form>
-  <ul class="links">
-    <li><a href="/accounts">Accounts</a>: every account with its balance</li>
-    <li><a href="/transfers">Transfers</a>: newest first</li>
-    <li><a href="/entries">Entries</a>: each side of every transfer</li>
-    <li><a href="/trace">Trace</a>: follow money across accounts by a metadata key and value</li>
-  </ul>
-</section>
+  <section class="hero">
+    <h1>pgledger visualizer</h1>
+    <form action="/search" method="get" class="search big">
+      <input type="search"
+             name="q"
+             placeholder="Search accounts, transfers, entries, metadata… (press /)"
+             autofocus>
+      <button type="submit">Search</button>
+    </form>
+    <ul class="links">
+      <li><a href="/accounts">Accounts</a>: every account with its balance</li>
+      <li><a href="/transfers">Transfers</a>: newest first</li>
+      <li><a href="/entries">Entries</a>: each side of every transfer</li>
+      <li><a href="/trace">Trace</a>: follow money across accounts by a metadata key and value</li>
+    </ul>
+  </section>
 {{end}}
