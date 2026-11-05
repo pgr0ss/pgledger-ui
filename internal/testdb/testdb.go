@@ -22,7 +22,7 @@ func BaseURL() string {
 	}
 	port := os.Getenv("POSTGRES_PORT")
 	if port == "" {
-		port = "5433"
+		port = "5432"
 	}
 	return "postgres://pgledger:pgledger@localhost:" + port + "/pgledger_viz"
 }

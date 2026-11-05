@@ -20,13 +20,14 @@ Features:
 
 ```sh
 mise install
-mise run demo   # start Postgres on :5433, reset the pgledger_viz database, load sample data, serve
+mise run demo   # start Postgres on :5432, reset the pgledger_viz database, load sample data, serve
 ```
 
 Then open http://127.0.0.1:8080.
 
-To use a different port, put `[env] POSTGRES_PORT = "5434"` in a gitignored `mise.local.toml`. Setting `DATABASE_URL`
-overrides the URL used by `mise run seed` and `mise run serve`.
+To use a different port, put `POSTGRES_PORT=5455` in a gitignored `.env`. docker compose reads it directly, and mise loads
+it into every task, including `mise run test`. Setting `DATABASE_URL` overrides the URL used by `mise run seed` and
+`mise run serve`.
 
 ## Pointing at pgledger's example database
 
