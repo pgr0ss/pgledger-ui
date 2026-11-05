@@ -1,0 +1,62 @@
+# pgledger visualizer
+
+A read-only web UI for [pgledger](https://github.com/pgr0ss/pgledger) data. It reads only the public views
+(`pgledger_accounts_view`, `pgledger_transfers_view`, `pgledger_entries_view`) and connects with
+`default_transaction_read_only=on`.
+
+```sh
+pgledger-viz serve --db postgres://user:pass@host:5432/dbname
+```
+
+Features:
+
+- Live search across accounts, transfers, entries and metadata. Every id and name is a link.
+- Account pages show a balance sparkline, the balance at any time (as recorded or by event time), and the account's entries.
+- Trace: pick a transfer metadata key and value (e.g. `payment_id`) to follow money across accounts. A crosstab and an
+  in/out grid put accounts in columns with time flowing downward.
+- A header toggle switches displayed times between UTC and your browser's timezone.
+
+## Quickstart
+
+```sh
+mise install
+mise run demo   # start Postgres on :5433, reset the pgledger_viz database, load sample data, serve
+```
+
+Then open http://127.0.0.1:8080.
+
+To use a different port, put `[env] POSTGRES_PORT = "5434"` in a gitignored `mise.local.toml`. Setting `DATABASE_URL`
+overrides the URL used by `mise run seed` and `mise run serve`.
+
+## Pointing at pgledger's example database
+
+In `../pgledger`, run `just run-examples`. Then:
+
+```sh
+go run ./cmd/pgledger-viz serve --db postgres://pgledger:pgledger@localhost:5432/pgledger
+```
+
+`/trace?key=payment_id&value=p_123` reproduces the crosstab in pgledger's `examples/reconciliation.sql.out`.
+
+## Commands
+
+- `pgledger-viz serve [--addr 127.0.0.1:8080] [--db URL]`: binds to loopback by default.
+- `pgledger-viz seed [--install-schema] [--users 20] [--seed 1] [--db URL]`: loads deterministic sample payment flows into
+  an empty database. `--install-schema` installs pgledger first if its views are missing.
+
+`--db` defaults to `$DATABASE_URL`.
+
+## Development
+
+- `mise tasks`: list every task.
+- `mise run check`: format SQL, regenerate sqlc code, tidy, test and lint.
+- `mise run test`: needs Postgres (`mise run up`). Each test runs in its own schema. Set `TEST_DATABASE_URL` to use another
+  server.
+- `mise run sync-pgledger [dir]`: copy pgledger's schema files from `../pgledger` (or `dir`) into `internal/pgschema/sql`.
+  Then run `mise run generate`, which re-checks every query against the new schema.
+
+All SQL lives in `internal/db/queries/*.sql`. sqlc compiles it into typed Go in `internal/db`, and sqlfluff formats and
+lints it with pgledger's config.
+
+Stack: Go with pgx, `html/template`, about 130 lines of vanilla JS and hand-written CSS, all embedded in one binary. No npm
+and no build step.

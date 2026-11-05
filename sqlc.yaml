@@ -1,0 +1,17 @@
+version: "2"
+sql:
+  - engine: postgresql
+    schema:
+      - internal/pgschema/sql/ulid-to-uuid.sql
+      - internal/pgschema/sql/uuid-to-ulid.sql
+      - internal/pgschema/sql/pgledger.sql
+    queries: internal/db/queries
+    gen:
+      go:
+        package: db
+        out: internal/db
+        omit_unused_structs: true
+        sql_package: pgx/v5
+        overrides:
+          - db_type: timestamptz
+            go_type: time.Time

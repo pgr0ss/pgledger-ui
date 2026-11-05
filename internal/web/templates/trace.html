@@ -1,0 +1,57 @@
+{{define "content"}}
+{{if .Value}}
+<h1><a href="/trace?key={{.Key}}">{{.Key}}</a> = {{.Value}}</h1>
+<nav class="tabs">
+  <a href="{{withParam .URL "view" "crosstab"}}"{{if eq .View "crosstab"}} class="active"{{end}}>Crosstab</a>
+  <a href="{{withParam .URL "view" "inout"}}"{{if eq .View "inout"}} class="active"{{end}}>In / Out</a>
+  <a href="{{withParam .URL "view" "transfers"}}"{{if eq .View "transfers"}} class="active"{{end}}>Transfers</a>
+  {{template "orderToggle" .}}
+</nav>
+{{if eq .View "transfers"}}
+  {{if .Grid.Grid.Truncated}}<p class="banner">Showing the most recent {{maxGrid}} transfers</p>{{end}}
+  <table class="list">
+    <thead><tr><th>transfer</th><th>{{if eq .Order "event"}}event{{else}}created{{end}}</th><th>from → to</th><th class="num">amount</th><th>metadata</th></tr></thead>
+    <tbody>{{$order := .Order}}{{$key := .Key}}{{range .Transfers}}<tr>
+      <td><a href="/transfers/{{.ID}}">{{template "id" .ID}}</a></td>
+      <td>{{if eq $order "event"}}{{ts .EventAt}}{{else}}{{ts .CreatedAt}}{{end}}</td>
+      <td>{{template "acct" (accountRef .FromID .FromName)}} → {{template "acct" (accountRef .ToID .ToName)}}</td>
+      <td class="num">{{.Amount}} <span class="muted">{{.Currency}}</span></td>
+      <td>{{template "pills" pills .Metadata $key}}</td>
+    </tr>{{end}}</tbody>
+  </table>
+{{else}}
+  {{template "grid" .Grid}}
+{{end}}
+{{else}}
+<h1>Trace</h1>
+<p class="muted">Follow money across accounts by a transfer metadata key and value, e.g. <code>payment_id</code>.</p>
+<form action="/trace" method="get" class="search" data-live="#results">
+  <input type="search" name="key" value="{{.Key}}" placeholder="metadata key" autofocus>
+  <input type="search" name="vq" value="{{.VQ}}" placeholder="value contains…">
+</form>
+<div id="results">{{template "results" .}}</div>
+{{end}}
+{{end}}
+
+{{define "results"}}
+{{if not .ExactKey}}
+  <h2>Matching keys</h2>
+  {{if .Keys}}<table class="list">
+    <thead><tr><th>key</th><th class="num">transfers</th></tr></thead>
+    <tbody>{{range .Keys}}<tr><td><a href="/trace?key={{.Key}}">{{.Key}}</a></td><td class="num">{{.Transfers}}</td></tr>{{end}}</tbody>
+  </table>
+  {{else}}<p class="muted">No metadata keys match.</p>{{end}}
+{{else}}
+  <h2>Values of {{.Key}}</h2>
+  {{if .Values}}<table class="list">
+    <thead><tr><th>value</th><th class="num">transfers</th><th>first</th><th>last</th></tr></thead>
+    <tbody>{{$key := .Key}}{{range .Values}}<tr>
+      <td><a href="{{traceURL $key .Value}}">{{.Value}}</a></td>
+      <td class="num">{{.Transfers}}</td>
+      <td>{{ts .First}}</td>
+      <td>{{ts .Last}}</td>
+    </tr>{{end}}</tbody>
+  </table>
+  {{else}}<p class="muted">No values match.</p>{{end}}
+{{end}}
+{{end}}

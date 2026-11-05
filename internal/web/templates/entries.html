@@ -1,0 +1,17 @@
+{{define "content"}}
+<h1>Entries</h1>
+<form action="/entries" method="get" class="search" data-live="#results">
+  <input type="search" name="q" value="{{.Q}}" placeholder="entry or transfer id, account name, or metadata" autofocus>
+</form>
+<div id="results">{{template "results" .}}</div>
+{{end}}
+
+{{define "results"}}
+{{if .Entries}}
+<table class="list">
+  <thead>{{template "entryHead"}}</thead>
+  <tbody>{{template "entryRows" .Entries}}</tbody>
+</table>
+{{if .Before}}<p class="pager"><a href="{{withParam .URL "before" .Before}}">Older →</a></p>{{end}}
+{{else}}<p class="muted">No entries.</p>{{end}}
+{{end}}

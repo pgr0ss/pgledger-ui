@@ -1,0 +1,27 @@
+{{define "layout"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Title}} · pgledger</title>
+<link rel="stylesheet" href="/static/app.css">
+<script src="/static/app.js" defer></script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="/">pgledger</a>
+  <nav>
+    <a href="/search"{{if eq .Nav "search"}} class="active"{{end}}>Search</a>
+    <a href="/accounts"{{if eq .Nav "accounts"}} class="active"{{end}}>Accounts</a>
+    <a href="/transfers"{{if eq .Nav "transfers"}} class="active"{{end}}>Transfers</a>
+    <a href="/entries"{{if eq .Nav "entries"}} class="active"{{end}}>Entries</a>
+    <a href="/trace"{{if eq .Nav "trace"}} class="active"{{end}}>Trace</a>
+  </nav>
+  <button type="button" class="tz" data-tz-toggle>Times: UTC</button>
+</header>
+<main>
+{{template "content" .}}
+</main>
+</body>
+</html>
+{{end}}

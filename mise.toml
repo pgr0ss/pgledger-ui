@@ -1,0 +1,66 @@
+[tools]
+go = "1.27.3"
+uv = "0.13.5"              # backs the pipx: installer
+golangci-lint = "2.15.0"
+"pipx:sqlfluff" = "4.4.0"
+sqlc = "1.31.1"
+
+[tasks.up]
+description = "Start Postgres"
+run = "docker compose up -d --wait"
+
+[tasks.dbreset]
+description = "Drop and recreate the pgledger_viz database"
+run = [
+  "docker compose exec postgres dropdb --force --if-exists -U pgledger pgledger_viz",
+  "docker compose exec postgres createdb -U pgledger pgledger_viz",
+]
+
+[tasks.seed]
+description = "Install pgledger if missing and load sample data; extra args go to `seed`"
+run = 'go run ./cmd/pgledger-viz seed --install-schema --db "${DATABASE_URL:-postgres://pgledger:pgledger@localhost:${POSTGRES_PORT:-5433}/pgledger_viz}"'
+
+[tasks.serve]
+description = "Run the visualizer; extra args go to `serve`"
+run = 'go run ./cmd/pgledger-viz serve --db "${DATABASE_URL:-postgres://pgledger:pgledger@localhost:${POSTGRES_PORT:-5433}/pgledger_viz}"'
+
+[tasks.demo]
+description = "Fresh database, sample data, then serve"
+run = [{ task = "up" }, { task = "dbreset" }, { task = "seed" }, { task = "serve" }]
+
+[tasks.test]
+run = "go test -race ./..."
+
+[tasks.generate]
+run = "sqlc generate"
+
+[tasks.sqlc-check]
+description = "Fail if queries don't compile or generated code is stale"
+run = ["sqlc compile", "sqlc diff"]
+
+[tasks.lint-sql]
+run = "sqlfluff lint"
+
+[tasks.format-sql]
+run = "sqlfluff format"
+
+[tasks.golangci-lint]
+run = "golangci-lint run"
+
+[tasks.tidy-check]
+run = "go mod tidy -diff"
+
+[tasks.lint]
+depends = ["lint-sql", "sqlc-check", "golangci-lint", "tidy-check"]
+
+[tasks.check]
+description = "Format, regenerate, tidy, test, lint (local pre-commit)"
+run = [{ task = "format-sql" }, { task = "generate" }, "go mod tidy", { task = "test" }, { task = "lint" }]
+
+[tasks.sync-pgledger]
+description = "Copy pgledger's schema files into internal/pgschema/sql"
+usage = 'arg "[dir]" default="../pgledger"'
+run = [
+  'cp "$usage_dir/vendor/scoville-pgsql-ulid/ulid-to-uuid.sql" "$usage_dir/vendor/scoville-pgsql-ulid/uuid-to-ulid.sql" "$usage_dir/pgledger.sql" internal/pgschema/sql/',
+  'git -C "$usage_dir" rev-parse HEAD > internal/pgschema/sql/VERSION',
+]

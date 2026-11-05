@@ -1,0 +1,20 @@
+{{define "content"}}{{$t := .Transfer}}
+<h1>Transfer <code>{{short $t.ID}}</code></h1>
+<p class="flow">
+  {{template "acct" (accountRef $t.FromAccountID $t.FromName)}} → {{template "acct" (accountRef $t.ToAccountID $t.ToName)}}
+  <strong class="amount">{{$t.Amount}} {{$t.Currency}}</strong>
+</p>
+<dl class="fields">
+  <dt>id</dt><dd><code>{{$t.ID}}</code></dd>
+  <dt>created</dt><dd>{{ts $t.CreatedAt}}</dd>
+  <dt>event</dt><dd>{{ts $t.EventAt}}</dd>
+  <dt>metadata</dt><dd>{{template "pills" pills $t.Metadata ""}}</dd>
+</dl>
+{{if $t.Metadata.Raw}}<details open><summary>Raw metadata</summary><pre>{{prettyJSON $t.Metadata.Raw}}</pre></details>{{end}}
+
+<h2>Entries</h2>
+<table class="list">
+  <thead>{{template "entryHead"}}</thead>
+  <tbody>{{template "entryRows" .Entries}}</tbody>
+</table>
+{{end}}

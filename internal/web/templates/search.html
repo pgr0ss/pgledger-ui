@@ -1,0 +1,49 @@
+{{define "content"}}
+<h1>Search</h1>
+<form action="/search" method="get" class="search" data-live="#results">
+  <input type="search" name="q" value="{{.Q}}" placeholder="name, id, or metadata" autofocus>
+</form>
+<div id="results">{{template "results" .}}</div>
+{{end}}
+
+{{define "results"}}
+{{if not .Q}}<p class="muted">Type to search account names and ids, transfer ids, and metadata keys and values.</p>
+{{else}}
+<section>
+  <h2>Accounts</h2>
+  {{if .Accounts}}<table class="list">
+    <thead><tr><th>name</th><th>currency</th><th class="num">balance</th><th>id</th></tr></thead>
+    <tbody>{{range .Accounts}}<tr>
+      <td>{{template "acct" (accountRef .ID .Name)}}</td><td>{{.Currency}}</td>
+      <td class="num">{{template "amount" .Balance}}</td><td>{{template "id" .ID}}</td>
+    </tr>{{end}}</tbody>
+  </table>
+  <p><a href="/accounts?q={{.Q}}">All matching accounts →</a></p>
+  {{else}}<p class="muted">No accounts.</p>{{end}}
+</section>
+<section>
+  <h2>Transfers</h2>
+  {{if .Transfers}}<table class="list">
+    <thead><tr><th>id</th><th>created</th><th>from → to</th><th class="num">amount</th><th>metadata</th></tr></thead>
+    <tbody>{{range .Transfers}}<tr>
+      <td><a href="/transfers/{{.ID}}">{{template "id" .ID}}</a></td><td>{{ts .CreatedAt}}</td>
+      <td>{{template "acct" (accountRef .FromAccountID .FromName)}} → {{template "acct" (accountRef .ToAccountID .ToName)}}</td>
+      <td class="num">{{.Amount}} <span class="muted">{{.Currency}}</span></td>
+      <td>{{template "pills" pills .Metadata ""}}</td>
+    </tr>{{end}}</tbody>
+  </table>
+  <p><a href="/transfers?q={{.Q}}">All matching transfers →</a></p>
+  {{else}}<p class="muted">No transfers.</p>{{end}}
+</section>
+<section>
+  <h2>Metadata</h2>
+  {{if .Pairs}}<table class="list">
+    <thead><tr><th>key = value</th><th class="num">transfers</th></tr></thead>
+    <tbody>{{range .Pairs}}<tr>
+      <td><a href="{{traceURL .Key .Value}}"><b>{{.Key}}</b> = {{.Value}}</a></td><td class="num">{{.Transfers}}</td>
+    </tr>{{end}}</tbody>
+  </table>
+  {{else}}<p class="muted">No metadata.</p>{{end}}
+</section>
+{{end}}
+{{end}}

@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ !contains(github.ref, 'main')}}
+
+jobs:
+  lint:
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: jdx/mise-action@v5
+      - run: mise run lint
+
+  test:
+    runs-on: ubuntu-26.04
+    strategy:
+      matrix:
+        postgres_version: ["15", "16", "17", "18"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: jdx/mise-action@v5
+      - name: Start Postgres
+        run: docker compose up --pull always --wait
+        env:
+          POSTGRES_VERSION: ${{ matrix.postgres_version }}
+      - run: mise run test
+
+  all-checks-passed:
+    if: ${{ always() }}
+    needs: [lint, test]
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Fail unless required checks pass
+        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped') }}
+        run: exit 1
+      - run: echo "All checks passed"
