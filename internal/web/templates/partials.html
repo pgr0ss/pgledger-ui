@@ -94,14 +94,18 @@
         </thead>
         <tbody>
           {{range $g.Rows}}
-            <tr>
-              <th class="label">
+            <tr data-tx="{{.Tx}}">
+              <th class="label{{if .Tx}} tx{{end}}{{if .TxStart}} tx-start{{end}}{{if .TxEnd}} tx-end{{end}}">
                 <a href="/transfers/{{.TransferID}}" title="{{.TransferID}}"><code>{{short .TransferID}}</code></a>
                 <span class="when">
                   {{if eq $v.Order "event_at"}}
                     {{template "ts" .EventAt}}
                   {{else}}
                     {{template "ts" .CreatedAt}}
+                  {{end}}
+                  {{if .Tx}}
+                    <span class="tx-badge"
+                          title="One of {{.TxSize}} transfers here created in the same database transaction (same created_at)">tx {{.Tx}}</span>
                   {{end}}
                 </span>
                 {{template "pills" pills .Metadata $v.HideKey}}

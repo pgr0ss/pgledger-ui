@@ -14,12 +14,12 @@ import (
 
 var opts = seed.Options{Users: 8, Seed: 1, Now: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)}
 
-func run(t *testing.T, pool *pgxpool.Pool) (seed.Summary, error) {
+func run(t *testing.T, pool *pgxpool.Pool, o seed.Options) (seed.Summary, error) {
 	t.Helper()
 	conn, err := pool.Acquire(t.Context())
 	require.NoError(t, err)
 	defer conn.Release()
-	return seed.Run(t.Context(), conn.Conn(), opts)
+	return seed.Run(t.Context(), conn.Conn(), o)
 }
 
 type transferRow struct {
@@ -50,7 +50,7 @@ func TestRun(t *testing.T) {
 	t.Parallel()
 	_, admin := testdb.New(t)
 
-	sum, err := run(t, admin)
+	sum, err := run(t, admin, opts)
 	require.NoError(t, err)
 	assert.Equal(t, 3+8*4+2, sum.Accounts)
 	assert.Len(t, transfers(t, admin), sum.Transfers)
@@ -100,14 +100,15 @@ func TestRun(t *testing.T) {
 		{"USD->EUR", "liquidity.eur -> eur.available", "EUR"},
 	}, legs)
 
-	_, err = run(t, admin)
+	_, err = run(t, admin, opts)
 	assert.ErrorContains(t, err, "sample data already present")
 }
 
 func TestRunBackdates(t *testing.T) {
 	t.Parallel()
 	_, admin := testdb.New(t)
-	_, err := run(t, admin)
+	// Enough users that some steps for one payment fall on the same hour offset.
+	_, err := run(t, admin, seed.Options{Users: 20, Seed: opts.Seed, Now: opts.Now})
 	require.NoError(t, err)
 	ctx := t.Context()
 
@@ -151,6 +152,21 @@ func TestRunBackdates(t *testing.T) {
 			(SELECT max(e.created_at) FROM pgledger_entries_view e WHERE e.account_id = a.id), a.created_at)`,
 	).Scan(&staleUpdatedAt))
 	assert.Zero(t, staleUpdatedAt)
+
+	var fxs, shared, fxPairs int
+	require.NoError(t, admin.QueryRow(ctx, `
+		SELECT
+			(SELECT count(DISTINCT metadata ->> 'fx_id') FROM pgledger_transfers_view),
+			count(*) FILTER (WHERE n > 1),
+			count(*) FILTER (WHERE n = 2 AND fx_ids = 1 AND fx_legs = 2)
+		FROM (
+			SELECT count(*) AS n, count(DISTINCT metadata ->> 'fx_id') AS fx_ids, count(metadata ->> 'fx_id') AS fx_legs
+			FROM pgledger_transfers_view
+			GROUP BY created_at
+		) g`).Scan(&fxs, &shared, &fxPairs))
+	assert.Positive(t, fxs)
+	assert.Equal(t, fxs, fxPairs, "each fx's two legs share a created_at")
+	assert.Equal(t, fxs, shared, "only fx legs share a created_at")
 }
 
 func TestRunIsDeterministic(t *testing.T) {
@@ -158,9 +174,9 @@ func TestRunIsDeterministic(t *testing.T) {
 	_, first := testdb.New(t)
 	_, second := testdb.New(t)
 
-	_, err := run(t, first)
+	_, err := run(t, first, opts)
 	require.NoError(t, err)
-	_, err = run(t, second)
+	_, err = run(t, second, opts)
 	require.NoError(t, err)
 
 	assert.Equal(t, transfers(t, first), transfers(t, second))

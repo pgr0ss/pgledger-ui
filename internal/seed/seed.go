@@ -141,6 +141,7 @@ func Run(ctx context.Context, conn *pgx.Conn, opts Options) (Summary, error) {
 
 		balances := map[string]int64{}
 		skipped := make([]bool, len(steps))
+		var lastAt time.Time
 		for _, i := range order {
 			s := steps[i]
 			// Steps after Now haven't happened yet: their payments stay in flight.
@@ -159,6 +160,13 @@ func Run(ctx context.Context, conn *pgx.Conn, opts Options) (Summary, error) {
 			if s.to2 != "" {
 				balances[s.to2] += s.cents2
 			}
+			// Each step stands for its own transaction, and pgledger's created_at is the transaction's
+			// start time, so steps must not share one at Postgres's microsecond precision.
+			at := s.at.Truncate(time.Microsecond)
+			if !at.After(lastAt) {
+				at = lastAt.Add(time.Microsecond)
+			}
+			lastAt = at
 
 			md, err := json.Marshal(s.metadata)
 			if err != nil {
@@ -182,7 +190,7 @@ func Run(ctx context.Context, conn *pgx.Conn, opts Options) (Summary, error) {
 				}
 				ids = []string{id}
 			}
-			if err := q.BackdateTransfers(ctx, db.BackdateTransfersParams{CreatedAt: s.at, Ids: ids}); err != nil {
+			if err := q.BackdateTransfers(ctx, db.BackdateTransfersParams{CreatedAt: at, Ids: ids}); err != nil {
 				return err
 			}
 			sum.Transfers += len(ids)

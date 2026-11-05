@@ -16,6 +16,10 @@ Features:
   zoom the chart, funds, entries and grids to that `created_at` range.
 - Trace: pick a transfer metadata key and value (e.g. `payment_id`) to follow money across accounts. A crosstab and an
   in/out grid put accounts in columns with time flowing downward.
+- The crosstab and in/out grids bracket and number (`tx 1`, `tx 2`, …) transfers created in the same database
+  transaction; hovering one highlights the rest. pgledger stamps `created_at` with `now()`, the transaction's start
+  time, so shared `created_at` is the signal (exact across savepoints, which `xmin` is not, and visible through the
+  views). Two transactions starting in the same microsecond would be grouped too.
 - A header toggle switches displayed times between UTC and your browser's timezone.
 
 ## Quickstart
@@ -48,8 +52,8 @@ go run ./cmd/pgledger-visualizer serve --db postgres://pgledger:pgledger@localho
   logs every query, `-1` (default) disables query logging.
 - `pgledger-visualizer seed [--install-schema] [--users 20] [--seed 1] [--db URL]`: loads deterministic sample payment
   flows into an empty database, spread over the last 30 days. pgledger stamps rows with `now()`, so the seed overwrites
-  `created_at` on the accounts, transfers and entries it creates. `--install-schema` installs pgledger first if its views
-  are missing.
+  `created_at` on the accounts, transfers and entries it creates, giving each simulated transaction (an FX's two legs
+  share one) a distinct `created_at`. `--install-schema` installs pgledger first if its views are missing.
 
 `--db` defaults to `$DATABASE_URL`.
 

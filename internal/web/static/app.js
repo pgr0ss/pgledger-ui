@@ -133,6 +133,18 @@ function toggleColumn(e, on) {
 document.addEventListener("mouseover", (e) => toggleColumn(e, true));
 document.addEventListener("mouseout", (e) => toggleColumn(e, false));
 
+// Hovering a row also highlights the other rows created in its database transaction.
+function toggleTx(e, on) {
+  const row = e.target.closest("table.grid tbody tr[data-tx]");
+  if (!row || row.dataset.tx === "0") return;
+  const table = row.closest("table.grid");
+  for (const el of table.querySelectorAll(`tbody tr[data-tx="${row.dataset.tx}"]`)) {
+    el.classList.toggle("tx-hover", on);
+  }
+}
+document.addEventListener("mouseover", (e) => toggleTx(e, true));
+document.addEventListener("mouseout", (e) => toggleTx(e, false));
+
 // Pointer travel, in pixels, below which a press and release is a click rather than a drag.
 const clickSlop = 4;
 

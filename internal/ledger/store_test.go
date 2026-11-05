@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -104,6 +105,35 @@ func TestGridEntriesByAccount(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, truncated)
 	assert.Len(t, gridKinds(entries), 4)
+}
+
+func TestGridGroupsTransfersFromOneTransaction(t *testing.T) {
+	r, s := reconStore(t)
+	ctx := t.Context()
+	create := func(q *db.Queries, from, to string) {
+		_, err := q.CreateTransfer(ctx, db.CreateTransferParams{
+			FromAccountID: r.Accounts[from], ToAccountID: r.Accounts[to], Amount: "3.00", EventAt: time.Now(),
+		})
+		require.NoError(t, err)
+	}
+	require.NoError(t, pgx.BeginFunc(ctx, r.Admin, func(tx pgx.Tx) error {
+		create(db.New(tx), "a_b", "axb")
+		// A savepoint is a subtransaction with its own xid, but the same transaction start time.
+		return pgx.BeginFunc(ctx, tx, func(sub pgx.Tx) error {
+			create(db.New(sub), "axb", "a_b")
+			return nil
+		})
+	}))
+
+	entries, _, err := s.GridEntries(ctx, ledger.GridFilter{AccountID: r.Accounts["a_b"]}, ledger.OrderCreated, ledger.MaxGridTransfers)
+	require.NoError(t, err)
+	g, err := ledger.BuildGrid(entries, false)
+	require.NoError(t, err)
+	var txs []int
+	for _, row := range g.Rows {
+		txs = append(txs, row.Tx)
+	}
+	assert.Equal(t, []int{0, 0, 1, 1}, txs)
 }
 
 func TestListTransfersKeyset(t *testing.T) {

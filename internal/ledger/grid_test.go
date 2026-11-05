@@ -2,6 +2,7 @@ package ledger_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -61,4 +62,37 @@ func TestBuildGridMixedScale(t *testing.T) {
 func TestBuildGridInvalidAmount(t *testing.T) {
 	_, err := ledger.BuildGrid([]ledger.GridEntry{entry("t1", "a", "abc")}, false)
 	assert.EqualError(t, err, `amount "abc": invalid`)
+}
+
+func TestBuildGridGroupsTransactions(t *testing.T) {
+	a := time.Date(2026, 1, 1, 0, 0, 0, 1000, time.UTC)
+	b, c := a.Add(time.Microsecond), a.Add(time.Hour)
+	var entries []ledger.GridEntry
+	for _, tr := range []struct {
+		id string
+		at time.Time
+	}{{"t1", a}, {"t2", b}, {"t3", a}, {"t4", c}, {"t5", c}} {
+		from, to := entry(tr.id, "x", "-1.00"), entry(tr.id, "y", "1.00")
+		from.CreatedAt, to.CreatedAt = tr.at, tr.at
+		entries = append(entries, from, to)
+	}
+
+	g, err := ledger.BuildGrid(entries, false)
+	require.NoError(t, err)
+
+	type tx struct {
+		Tx, Size   int
+		Start, End bool
+	}
+	var got []tx
+	for _, r := range g.Rows {
+		got = append(got, tx{r.Tx, r.TxSize, r.TxStart, r.TxEnd})
+	}
+	assert.Equal(t, []tx{
+		{1, 2, true, true},
+		{0, 0, false, false},
+		{1, 2, true, true},
+		{2, 2, true, false},
+		{2, 2, false, true},
+	}, got)
 }
