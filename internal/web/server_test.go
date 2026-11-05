@@ -85,6 +85,16 @@ func TestSearchPartial(t *testing.T) {
 	assert.NotContains(t, body, "<html")
 }
 
+func TestSearchByEntryID(t *testing.T) {
+	f := newFixture(t)
+	entries, err := f.store.TransferEntries(t.Context(), f.Transfer(t, "p_123", "refund_sent").ID)
+	require.NoError(t, err)
+	id := entries[0].ID
+
+	_, body := f.get(t, "/search?partial=1&q="+id[:len(id)-4])
+	assert.Contains(t, body, `href="/entries/`+id+`"`)
+}
+
 func TestTraceKeySuggestions(t *testing.T) {
 	f := newFixture(t)
 	_, body := f.get(t, "/trace?key=pay&partial=1")

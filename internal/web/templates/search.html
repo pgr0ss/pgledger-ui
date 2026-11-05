@@ -7,7 +7,7 @@
 {{end}}
 
 {{define "results"}}
-{{if not .Q}}<p class="muted">Type to search account names and ids, transfer ids, and metadata keys and values.</p>
+{{if not .Q}}<p class="muted">Type to search account names and ids, transfer and entry ids, and metadata keys and values.</p>
 {{else}}
 <section>
   <h2>Accounts</h2>
@@ -34,6 +34,15 @@
   </table>
   <p><a href="/transfers?q={{.Q}}">All matching transfers →</a></p>
   {{else}}<p class="muted">No transfers.</p>{{end}}
+</section>
+<section>
+  <h2>Entries</h2>
+  {{if .Entries}}<table class="list">
+    <thead>{{template "entryHead"}}</thead>
+    <tbody>{{template "entryRows" .Entries}}</tbody>
+  </table>
+  <p><a href="/entries?q={{.Q}}">All matching entries →</a></p>
+  {{else}}<p class="muted">No entries.</p>{{end}}
 </section>
 <section>
   <h2>Metadata</h2>

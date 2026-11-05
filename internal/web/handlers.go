@@ -17,6 +17,7 @@ type searchPage struct {
 	Q         string
 	Accounts  []ledger.Account
 	Transfers []ledger.Transfer
+	Entries   []ledger.Entry
 	Pairs     []ledger.MetaPair
 }
 
@@ -30,6 +31,10 @@ func (s *server) search(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if p.Transfers, _, err = s.store.ListTransfers(ctx, ledger.TransferFilter{Q: p.Q, Limit: ledger.SearchLimit}); err != nil {
+			s.fail(w, r, err, "")
+			return
+		}
+		if p.Entries, _, err = s.store.ListEntries(ctx, ledger.EntryFilter{Q: p.Q, Limit: ledger.SearchLimit}); err != nil {
 			s.fail(w, r, err, "")
 			return
 		}
