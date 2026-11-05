@@ -279,10 +279,15 @@ header.top nav a.active {
 }
 header.top .github {
   display: inline-flex;
-  color: var(--muted);
+  opacity: 0.6;
 }
 header.top .github:hover {
-  color: var(--fg);
+  opacity: 1;
+}
+@media (prefers-color-scheme: dark) {
+  header.top .github img {
+    filter: invert(1);
+  }
 }
 
 .chart {
