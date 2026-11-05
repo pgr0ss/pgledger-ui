@@ -54,7 +54,7 @@ go run ./cmd/pgledger-visualizer serve --db postgres://pgledger:pgledger@localho
 
 - `mise tasks`: list every task.
 - `mise run dev`: like `mise run serve`, but restarts (via watchexec) when Go, SQL, template or static files change.
-- `mise run check`: format SQL and templates, regenerate sqlc code, tidy, test and lint.
+- `mise run check`: format SQL, templates, CSS and JS, regenerate sqlc code, tidy, test and lint.
 - `mise run test`: needs Postgres (`mise run up`). Each test runs in its own schema. Set `TEST_DATABASE_URL` to use another
   server.
 - `mise run sync-pgledger [dir]`: copy pgledger's schema files from `../pgledger` (or `dir`) into `internal/pgschema/sql`.
@@ -66,6 +66,8 @@ All SQL lives in `internal/db/queries/*.sql`. sqlc (a `go tool` pinned in `go.mo
 Templates in `internal/web/templates` are formatted and linted by [djLint](https://djlint.com) (Go template profile,
 `.djlintrc`). Keep each `{{if}}`, `{{range}}` and `{{end}}` on its own line and put conditionals inside attribute values
 (`class="{{if …}}active{{end}}"`), not around attributes; djLint misformats the other forms.
+
+`internal/web/static` (CSS and JS) is formatted and linted by [Biome](https://biomejs.dev) (`biome.json`).
 
 Stack: Go with pgx, `html/template`, about 130 lines of vanilla JS and hand-written CSS, all embedded in one binary. No npm
 and no build step.

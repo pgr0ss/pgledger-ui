@@ -1,5 +1,3 @@
-"use strict";
-
 const TZ_KEY = "pgledger-visualizer.tz";
 const localZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
@@ -10,8 +8,10 @@ function tzMode() {
 const pad = (n, w = 2) => String(n).padStart(w, "0");
 
 function formatLocal(d) {
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ` +
-    `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${pad(d.getMilliseconds(), 3)}`;
+  return (
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ` +
+    `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${pad(d.getMilliseconds(), 3)}`
+  );
 }
 
 function formatTime(d, local) {
@@ -21,8 +21,10 @@ function formatTime(d, local) {
 // datetime-local value (YYYY-MM-DDTHH:MM:SS) for a Date, in local or UTC fields.
 function inputValue(d, local) {
   if (local) {
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T` +
-      `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    return (
+      `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T` +
+      `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+    );
   }
   return d.toISOString().slice(0, 19);
 }
@@ -44,8 +46,8 @@ function applyTimezone(root) {
     const shown = input.dataset.tzShown || "utc";
     const want = local ? "local" : "utc";
     if (shown === want) continue;
-    const d = shown === "utc" ? new Date(input.value + "Z") : new Date(input.value);
-    if (!isNaN(d)) input.value = inputValue(d, local);
+    const d = shown === "utc" ? new Date(`${input.value}Z`) : new Date(input.value);
+    if (!Number.isNaN(d.getTime())) input.value = inputValue(d, local);
     input.dataset.tzShown = want;
   }
   const toggle = document.querySelector("[data-tz-toggle]");
@@ -59,18 +61,24 @@ document.addEventListener("click", (e) => {
 });
 
 // The server always reads `at` as UTC, so convert a local entry before submit.
-document.addEventListener("submit", (e) => {
-  const form = e.target;
-  for (const input of form.querySelectorAll("input[data-tz-input]")) {
-    if (!input.value || (input.dataset.tzShown || "utc") !== "local") continue;
-    const d = new Date(input.value);
-    if (isNaN(d)) continue;
-    // Submit the UTC value, then restore the local display for bfcache/back.
-    const shown = input.value;
-    input.value = d.toISOString().slice(0, 19);
-    setTimeout(() => { input.value = shown; }, 0);
-  }
-}, true);
+document.addEventListener(
+  "submit",
+  (e) => {
+    const form = e.target;
+    for (const input of form.querySelectorAll("input[data-tz-input]")) {
+      if (!input.value || (input.dataset.tzShown || "utc") !== "local") continue;
+      const d = new Date(input.value);
+      if (Number.isNaN(d.getTime())) continue;
+      // Submit the UTC value, then restore the local display for bfcache/back.
+      const shown = input.value;
+      input.value = d.toISOString().slice(0, 19);
+      setTimeout(() => {
+        input.value = shown;
+      }, 0);
+    }
+  },
+  true,
+);
 
 function liveSearch(form) {
   const target = document.querySelector(form.dataset.live);
