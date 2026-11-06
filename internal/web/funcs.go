@@ -15,6 +15,7 @@ const timeLayout = "2006-01-02 15:04:05.000"
 
 var funcs = template.FuncMap{
 	"short":           short,
+	"shortKey":        shortKey,
 	"isoTime":         isoTime,
 	"tsText":          tsText,
 	"tsMinuteText":    tsMinuteText,
@@ -46,6 +47,14 @@ func short(id string) string {
 		return id
 	}
 	return id[:i+1] + "…" + id[len(id)-8:]
+}
+
+// shortKey keeps an idempotency key's first 8 characters, a UUID's first group.
+func shortKey(key string) string {
+	if len(key) <= 12 {
+		return key
+	}
+	return key[:8] + "…"
 }
 
 func isoTime(t time.Time) string { return t.UTC().Format(time.RFC3339Nano) }

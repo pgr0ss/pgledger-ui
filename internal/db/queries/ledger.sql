@@ -56,13 +56,16 @@ SELECT
     t.amount::TEXT AS amount,
     t.created_at,
     t.event_at,
-    t.metadata
+    t.metadata,
+    coalesce(k.idempotency_key, '')::TEXT AS idempotency_key
 FROM pgledger_transfers_view t
 INNER JOIN pgledger_accounts_view fa ON t.from_account_id = fa.id
 INNER JOIN pgledger_accounts_view ta ON t.to_account_id = ta.id
+LEFT JOIN pgledger_idempotency_keys_view k ON t.id = k.transfer_id
 WHERE
     (
         t.id ILIKE sqlc.arg(prefix)::TEXT
+        OR k.idempotency_key ILIKE sqlc.arg(prefix)::TEXT
         OR t.metadata::TEXT ILIKE sqlc.arg(contains)::TEXT
         OR fa.name ILIKE sqlc.arg(contains)::TEXT
         OR ta.name ILIKE sqlc.arg(contains)::TEXT
@@ -82,10 +85,12 @@ SELECT
     t.amount::TEXT AS amount,
     t.created_at,
     t.event_at,
-    t.metadata
+    t.metadata,
+    coalesce(k.idempotency_key, '')::TEXT AS idempotency_key
 FROM pgledger_transfers_view t
 INNER JOIN pgledger_accounts_view fa ON t.from_account_id = fa.id
 INNER JOIN pgledger_accounts_view ta ON t.to_account_id = ta.id
+LEFT JOIN pgledger_idempotency_keys_view k ON t.id = k.transfer_id
 WHERE t.id = sqlc.arg(id)::TEXT;
 
 -- name: ListEntries :many

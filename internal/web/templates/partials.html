@@ -1,5 +1,6 @@
 {{define "acct"}}<a href="/accounts/{{.ID}}" title="{{.ID}}">{{.Name}}</a>{{end}}
 {{define "id"}}<code title="{{.}}">{{short .}}</code>{{end}}
+{{define "idemKey"}}<a href="/transfers?q={{.}}" title="{{.}}"><code>{{shortKey .}}</code></a>{{end}}
 {{define "amount"}}<span class="amount {{signClass .}}">{{.}}</span>{{end}}
 {{define "ts"}}<time datetime="{{isoTime .}}">{{tsText .}}</time>{{end}}
 {{define "tsMinute"}}<time datetime="{{isoTime .}}" data-fmt="minute">{{tsMinuteText .}}</time>{{end}}

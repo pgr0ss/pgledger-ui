@@ -1,8 +1,8 @@
 # pgledger visualizer
 
 A read-only web UI for [pgledger](https://github.com/pgr0ss/pgledger) data. It reads only the public views
-(`pgledger_accounts_view`, `pgledger_transfers_view`, `pgledger_entries_view`) and connects with
-`default_transaction_read_only=on`.
+(`pgledger_accounts_view`, `pgledger_transfers_view`, `pgledger_entries_view`, `pgledger_idempotency_keys_view`) and
+connects with `default_transaction_read_only=on`.
 
 ```sh
 pgledger-visualizer serve --db postgres://user:pass@host:5432/dbname
@@ -10,7 +10,8 @@ pgledger-visualizer serve --db postgres://user:pass@host:5432/dbname
 
 Features:
 
-- Live search across accounts, transfers, entries and metadata. Every id and name is a link.
+- Live search across accounts, transfers, entries, idempotency keys and metadata. Every id and name is a link.
+- Transfers show the idempotency key they were created with, linking to every transfer created by that call.
 - Account pages show a balance chart (axes, gridlines, hover readout), total funds in and out with the top 5 accounts
   each way, the balance at any time (as recorded or by event time), and the account's entries. Drag across the chart to
   zoom the chart, funds, entries and grids to that `created_at` range.
@@ -53,7 +54,8 @@ go run ./cmd/pgledger-visualizer serve --db postgres://pgledger:pgledger@localho
 - `pgledger-visualizer seed [--install-schema] [--users 20] [--seed 1] [--db URL]`: loads deterministic sample payment
   flows into an empty database, spread over the last 30 days. pgledger stamps rows with `now()`, so the seed overwrites
   `created_at` on the accounts, transfers and entries it creates, giving each simulated transaction (an FX's two legs
-  share one) a distinct `created_at`. `--install-schema` installs pgledger first if its views are missing.
+  share one) a distinct `created_at`. Most client-initiated calls (payment and refund creation, FX) carry a UUID
+  idempotency key. `--install-schema` installs pgledger first if its views are missing.
 
 `--db` defaults to `$DATABASE_URL`.
 

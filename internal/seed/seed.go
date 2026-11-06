@@ -3,6 +3,7 @@ package seed
 
 import (
 	"context"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/pgr0ss/pgledger_visualizer/internal/db"
 	"github.com/pgr0ss/pgledger_visualizer/internal/pgschema"
@@ -29,14 +31,15 @@ type Summary struct {
 
 // step is one planned transfer. For FX steps, the second leg is from2 → to2.
 type step struct {
-	at, eventAt   time.Time
-	from, to      string
-	cents         int64
-	from2, to2    string
-	cents2        int64
-	metadata      map[string]string
-	dependsOn     int
-	debitsBalance bool
+	at, eventAt    time.Time
+	from, to       string
+	cents          int64
+	from2, to2     string
+	cents2         int64
+	metadata       map[string]string
+	idempotencyKey string
+	dependsOn      int
+	debitsBalance  bool
 }
 
 type user struct {
@@ -173,17 +176,19 @@ func Run(ctx context.Context, conn *pgx.Conn, opts Options) (Summary, error) {
 				return err
 			}
 			var ids []string
+			key := pgtype.Text{String: s.idempotencyKey, Valid: s.idempotencyKey != ""}
 			if s.from2 != "" {
 				if ids, err = q.CreateFxTransfers(ctx, db.CreateFxTransfersParams{
 					From1: s.from, To1: s.to, Amount1: money(s.cents),
 					From2: s.from2, To2: s.to2, Amount2: money(s.cents2),
-					EventAt: s.eventAt, Metadata: md,
+					EventAt: s.eventAt, Metadata: md, IdempotencyKey: key,
 				}); err != nil {
 					return fmt.Errorf("create fx transfers %s: %w", s.metadata["payment_id"], err)
 				}
 			} else {
 				id, err := q.CreateTransfer(ctx, db.CreateTransferParams{
 					FromAccountID: s.from, ToAccountID: s.to, Amount: money(s.cents), EventAt: s.eventAt, Metadata: md,
+					IdempotencyKey: key,
 				})
 				if err != nil {
 					return fmt.Errorf("create transfer %s %s: %w", s.metadata["kind"], s.metadata["payment_id"], err)
@@ -204,6 +209,15 @@ func plan(users []user, opts Options, liquidityUSD, liquidityEUR, fees string) [
 	rng := rand.New(rand.NewPCG(opts.Seed, opts.Seed)) //nolint:gosec // sample data must be reproducible from --seed
 	hours := func(lo, hi int) time.Duration { return time.Duration(lo+rng.IntN(hi-lo+1)) * time.Hour }
 	chance := func(pct int) bool { return rng.IntN(100) < pct }
+	// Client-initiated steps usually carry an idempotency key. Keys draw from their own source so the
+	// steps planned for a --seed don't depend on them.
+	keyRNG := rand.New(rand.NewPCG(opts.Seed, ^opts.Seed)) //nolint:gosec // reproducible from --seed
+	key := func() string {
+		if keyRNG.IntN(100) >= 75 {
+			return ""
+		}
+		return uuidV4(keyRNG)
+	}
 
 	var steps []step
 	add := func(s step) int {
@@ -223,7 +237,10 @@ func plan(users []user, opts Options, liquidityUSD, liquidityEUR, fees string) [
 			t0 := opts.Now.Add(-30*day + time.Duration(rng.Int64N(int64(29*day))))
 			amount := int64(1000 + rng.IntN(49001))
 
-			add(step{at: t0, from: u.external, to: u.receivables, cents: amount, metadata: meta("payment_created"), dependsOn: -1})
+			add(step{
+				at: t0, from: u.external, to: u.receivables, cents: amount, metadata: meta("payment_created"),
+				idempotencyKey: key(), dependsOn: -1,
+			})
 			if !chance(85) {
 				continue
 			}
@@ -239,7 +256,7 @@ func plan(users []user, opts Options, liquidityUSD, liquidityEUR, fees string) [
 				refund := int64(1 + rng.Int64N(received))
 				created := add(step{
 					at: refundAt, from: u.available, to: u.pendingOutbound, cents: refund,
-					metadata: meta("refund_created"), dependsOn: -1, debitsBalance: true,
+					metadata: meta("refund_created"), idempotencyKey: key(), dependsOn: -1, debitsBalance: true,
 				})
 				if chance(80) {
 					sentAt := refundAt.Add(hours(1, 48))
@@ -273,14 +290,14 @@ func plan(users []user, opts Options, liquidityUSD, liquidityEUR, fees string) [
 				toEUR := add(step{
 					at: fxAt, from: u.available, to: liquidityUSD, cents: usd,
 					from2: liquidityEUR, to2: u.eurAvailable, cents2: eur,
-					metadata: fxMeta("USD", "EUR"), dependsOn: -1, debitsBalance: true,
+					metadata: fxMeta("USD", "EUR"), idempotencyKey: key(), dependsOn: -1, debitsBalance: true,
 				})
 				if chance(50) {
 					back := 1 + rng.Int64N(eur)
 					add(step{
 						at: fxAt.Add(hours(1, 72)), from: u.eurAvailable, to: liquidityEUR, cents: back,
 						from2: liquidityUSD, to2: u.available, cents2: back * 100 / 92,
-						metadata: fxMeta("EUR", "USD"), dependsOn: toEUR, debitsBalance: true,
+						metadata: fxMeta("EUR", "USD"), idempotencyKey: key(), dependsOn: toEUR, debitsBalance: true,
 					})
 				}
 			}
@@ -291,4 +308,14 @@ func plan(users []user, opts Options, liquidityUSD, liquidityEUR, fees string) [
 
 func money(cents int64) string {
 	return fmt.Sprintf("%d.%02d", cents/100, cents%100)
+}
+
+// uuidV4 formats 16 bytes from r as a version 4 UUID.
+func uuidV4(r *rand.Rand) string {
+	var b [16]byte
+	binary.BigEndian.PutUint64(b[:8], r.Uint64())
+	binary.BigEndian.PutUint64(b[8:], r.Uint64())
+	b[6] = b[6]&0x0f | 0x40
+	b[8] = b[8]&0x3f | 0x80
+	return fmt.Sprintf("%x-%x-%x-%x-%x", b[:4], b[4:6], b[6:8], b[8:10], b[10:])
 }

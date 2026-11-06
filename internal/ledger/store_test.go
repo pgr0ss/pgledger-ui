@@ -7,6 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -149,6 +150,35 @@ func TestListTransfersKeyset(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, page2, 2)
 	assert.Less(t, page2[0].ID, page1[1].ID)
+}
+
+func TestTransferIdempotencyKey(t *testing.T) {
+	r, s := reconStore(t)
+	ctx := t.Context()
+	const key = "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+	ids, err := db.New(r.Admin).CreateFxTransfers(ctx, db.CreateFxTransfersParams{
+		From1: r.Accounts["a_b"], To1: r.Accounts["axb"], Amount1: "1.00",
+		From2: r.Accounts["axb"], To2: r.Accounts["a_b"], Amount2: "2.00",
+		EventAt: time.Now(), IdempotencyKey: pgtype.Text{String: key, Valid: true},
+	})
+	require.NoError(t, err)
+
+	transfer, err := s.GetTransfer(ctx, ids[0])
+	require.NoError(t, err)
+	assert.Equal(t, key, transfer.IdempotencyKey)
+
+	transfers, _, err := s.ListTransfers(ctx, ledger.TransferFilter{Q: key[:8], Limit: ledger.PageSize})
+	require.NoError(t, err)
+	var found []string
+	for _, tr := range transfers {
+		assert.Equal(t, key, tr.IdempotencyKey)
+		found = append(found, tr.ID)
+	}
+	assert.ElementsMatch(t, ids, found)
+
+	transfer, err = s.GetTransfer(ctx, r.Transfer(t, "p_123", "payment_created").ID)
+	require.NoError(t, err)
+	assert.Empty(t, transfer.IdempotencyKey)
 }
 
 func TestBalanceAt(t *testing.T) {

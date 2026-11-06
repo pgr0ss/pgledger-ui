@@ -4,7 +4,7 @@
     <input type="search"
            name="q"
            value="{{.Q}}"
-           placeholder="id, account name, or metadata"
+           placeholder="id, idempotency key, account name, or metadata"
            autofocus>
   </form>
   <div id="results">{{template "results" .}}</div>
@@ -19,6 +19,7 @@
           <th>event</th>
           <th>from → to</th>
           <th class="num">amount</th>
+          <th>idempotency key</th>
           <th>metadata</th>
         </tr>
       </thead>
@@ -30,6 +31,11 @@
             <td>{{template "ts" .EventAt}}</td>
             <td>{{template "acct" (accountRef .FromAccountID .FromName)}} → {{template "acct" (accountRef .ToAccountID .ToName)}}</td>
             <td class="num">{{.Amount}} <span class="muted">{{.Currency}}</span></td>
+            <td>
+              {{if .IdempotencyKey}}
+                {{template "idemKey" .IdempotencyKey}}
+              {{end}}
+            </td>
             <td>{{template "pills" pills .Metadata ""}}</td>
           </tr>
         {{end}}

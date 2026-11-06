@@ -11,7 +11,9 @@
 {{end}}
 {{define "results"}}
   {{if not .Q}}
-    <p class="muted">Type to search account names and ids, transfer and entry ids, and metadata keys and values.</p>
+    <p class="muted">
+      Type to search account names and ids, transfer and entry ids, idempotency keys, and metadata keys and values.
+    </p>
   {{else}}
     <section>
       <h2>Accounts</h2>
@@ -51,6 +53,7 @@
               <th>created</th>
               <th>from → to</th>
               <th class="num">amount</th>
+              <th>idempotency key</th>
               <th>metadata</th>
             </tr>
           </thead>
@@ -61,6 +64,11 @@
                 <td>{{template "ts" .CreatedAt}}</td>
                 <td>{{template "acct" (accountRef .FromAccountID .FromName)}} → {{template "acct" (accountRef .ToAccountID .ToName)}}</td>
                 <td class="num">{{.Amount}} <span class="muted">{{.Currency}}</span></td>
+                <td>
+                  {{if .IdempotencyKey}}
+                    {{template "idemKey" .IdempotencyKey}}
+                  {{end}}
+                </td>
                 <td>{{template "pills" pills .Metadata ""}}</td>
               </tr>
             {{end}}

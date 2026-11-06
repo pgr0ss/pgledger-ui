@@ -23,7 +23,8 @@ FROM
         sqlc.arg(to_account_id)::TEXT,
         cast(sqlc.arg(amount)::TEXT AS NUMERIC),
         event_at => sqlc.arg(event_at)::TIMESTAMPTZ,
-        metadata => sqlc.narg(metadata)::JSONB
+        metadata => sqlc.narg(metadata)::JSONB,
+        idempotency_key => sqlc.narg(idempotency_key)::TEXT
     );
 
 -- name: CreateFxTransfers :many
@@ -43,7 +44,8 @@ FROM
             )
         ]::TRANSFER_REQUEST[],
         event_at => sqlc.arg(event_at)::TIMESTAMPTZ,
-        metadata => sqlc.narg(metadata)::JSONB
+        metadata => sqlc.narg(metadata)::JSONB,
+        idempotency_key => sqlc.narg(idempotency_key)::TEXT
     );
 
 -- pgledger stamps rows with now(), so sample data overwrites created_at to spread it over time.

@@ -333,24 +333,27 @@ SELECT
     t.amount::TEXT AS amount,
     t.created_at,
     t.event_at,
-    t.metadata
+    t.metadata,
+    coalesce(k.idempotency_key, '')::TEXT AS idempotency_key
 FROM pgledger_transfers_view t
 INNER JOIN pgledger_accounts_view fa ON t.from_account_id = fa.id
 INNER JOIN pgledger_accounts_view ta ON t.to_account_id = ta.id
+LEFT JOIN pgledger_idempotency_keys_view k ON t.id = k.transfer_id
 WHERE t.id = $1::TEXT
 `
 
 type GetTransferRow struct {
-	ID            string
-	FromAccountID string
-	FromName      string
-	ToAccountID   string
-	ToName        string
-	Currency      string
-	Amount        string
-	CreatedAt     time.Time
-	EventAt       time.Time
-	Metadata      []byte
+	ID             string
+	FromAccountID  string
+	FromName       string
+	ToAccountID    string
+	ToName         string
+	Currency       string
+	Amount         string
+	CreatedAt      time.Time
+	EventAt        time.Time
+	Metadata       []byte
+	IdempotencyKey string
 }
 
 func (q *Queries) GetTransfer(ctx context.Context, id string) (GetTransferRow, error) {
@@ -367,6 +370,7 @@ func (q *Queries) GetTransfer(ctx context.Context, id string) (GetTransferRow, e
 		&i.CreatedAt,
 		&i.EventAt,
 		&i.Metadata,
+		&i.IdempotencyKey,
 	)
 	return i, err
 }
@@ -755,13 +759,16 @@ SELECT
     t.amount::TEXT AS amount,
     t.created_at,
     t.event_at,
-    t.metadata
+    t.metadata,
+    coalesce(k.idempotency_key, '')::TEXT AS idempotency_key
 FROM pgledger_transfers_view t
 INNER JOIN pgledger_accounts_view fa ON t.from_account_id = fa.id
 INNER JOIN pgledger_accounts_view ta ON t.to_account_id = ta.id
+LEFT JOIN pgledger_idempotency_keys_view k ON t.id = k.transfer_id
 WHERE
     (
         t.id ILIKE $1::TEXT
+        OR k.idempotency_key ILIKE $1::TEXT
         OR t.metadata::TEXT ILIKE $2::TEXT
         OR fa.name ILIKE $2::TEXT
         OR ta.name ILIKE $2::TEXT
@@ -779,16 +786,17 @@ type ListTransfersParams struct {
 }
 
 type ListTransfersRow struct {
-	ID            string
-	FromAccountID string
-	FromName      string
-	ToAccountID   string
-	ToName        string
-	Currency      string
-	Amount        string
-	CreatedAt     time.Time
-	EventAt       time.Time
-	Metadata      []byte
+	ID             string
+	FromAccountID  string
+	FromName       string
+	ToAccountID    string
+	ToName         string
+	Currency       string
+	Amount         string
+	CreatedAt      time.Time
+	EventAt        time.Time
+	Metadata       []byte
+	IdempotencyKey string
 }
 
 func (q *Queries) ListTransfers(ctx context.Context, arg ListTransfersParams) ([]ListTransfersRow, error) {
@@ -816,6 +824,7 @@ func (q *Queries) ListTransfers(ctx context.Context, arg ListTransfersParams) ([
 			&i.CreatedAt,
 			&i.EventAt,
 			&i.Metadata,
+			&i.IdempotencyKey,
 		); err != nil {
 			return nil, err
 		}

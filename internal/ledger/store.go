@@ -40,6 +40,9 @@ type Transfer struct {
 	ID, FromAccountID, FromName, ToAccountID, ToName, Currency, Amount string
 	CreatedAt, EventAt                                                 time.Time
 	Metadata                                                           Metadata
+	// IdempotencyKey is empty for transfers created without one. Transfers
+	// created by one call share its key.
+	IdempotencyKey string
 }
 
 type Entry struct {
@@ -175,7 +178,7 @@ func toTransfer(r db.ListTransfersRow) Transfer {
 	return Transfer{
 		ID: r.ID, FromAccountID: r.FromAccountID, FromName: r.FromName, ToAccountID: r.ToAccountID,
 		ToName: r.ToName, Currency: r.Currency, Amount: r.Amount, CreatedAt: r.CreatedAt,
-		EventAt: r.EventAt, Metadata: ParseMetadata(r.Metadata),
+		EventAt: r.EventAt, Metadata: ParseMetadata(r.Metadata), IdempotencyKey: r.IdempotencyKey,
 	}
 }
 

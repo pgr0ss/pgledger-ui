@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const backdateAccounts = `-- name: BackdateAccounts :exec
@@ -105,19 +107,21 @@ FROM
             )
         ]::TRANSFER_REQUEST[],
         event_at => $7::TIMESTAMPTZ,
-        metadata => $8::JSONB
+        metadata => $8::JSONB,
+        idempotency_key => $9::TEXT
     )
 `
 
 type CreateFxTransfersParams struct {
-	From1    string
-	To1      string
-	Amount1  string
-	From2    string
-	To2      string
-	Amount2  string
-	EventAt  time.Time
-	Metadata []byte
+	From1          string
+	To1            string
+	Amount1        string
+	From2          string
+	To2            string
+	Amount2        string
+	EventAt        time.Time
+	Metadata       []byte
+	IdempotencyKey pgtype.Text
 }
 
 func (q *Queries) CreateFxTransfers(ctx context.Context, arg CreateFxTransfersParams) ([]string, error) {
@@ -130,6 +134,7 @@ func (q *Queries) CreateFxTransfers(ctx context.Context, arg CreateFxTransfersPa
 		arg.Amount2,
 		arg.EventAt,
 		arg.Metadata,
+		arg.IdempotencyKey,
 	)
 	if err != nil {
 		return nil, err
@@ -157,16 +162,18 @@ FROM
         $2::TEXT,
         cast($3::TEXT AS NUMERIC),
         event_at => $4::TIMESTAMPTZ,
-        metadata => $5::JSONB
+        metadata => $5::JSONB,
+        idempotency_key => $6::TEXT
     )
 `
 
 type CreateTransferParams struct {
-	FromAccountID string
-	ToAccountID   string
-	Amount        string
-	EventAt       time.Time
-	Metadata      []byte
+	FromAccountID  string
+	ToAccountID    string
+	Amount         string
+	EventAt        time.Time
+	Metadata       []byte
+	IdempotencyKey pgtype.Text
 }
 
 func (q *Queries) CreateTransfer(ctx context.Context, arg CreateTransferParams) (string, error) {
@@ -176,6 +183,7 @@ func (q *Queries) CreateTransfer(ctx context.Context, arg CreateTransferParams) 
 		arg.Amount,
 		arg.EventAt,
 		arg.Metadata,
+		arg.IdempotencyKey,
 	)
 	var id string
 	err := row.Scan(&id)

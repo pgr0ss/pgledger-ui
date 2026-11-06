@@ -23,23 +23,24 @@ func run(t *testing.T, pool *pgxpool.Pool, o seed.Options) (seed.Summary, error)
 }
 
 type transferRow struct {
-	From, To, Amount, Metadata string
+	From, To, Amount, Metadata, IdempotencyKey string
 }
 
 func transfers(t *testing.T, pool *pgxpool.Pool) []transferRow {
 	t.Helper()
 	rows, err := pool.Query(t.Context(), `
-		SELECT fa.name, ta.name, t.amount::TEXT, t.metadata::TEXT
+		SELECT fa.name, ta.name, t.amount::TEXT, t.metadata::TEXT, coalesce(k.idempotency_key, '')
 		FROM pgledger_transfers_view t
 		INNER JOIN pgledger_accounts_view fa ON t.from_account_id = fa.id
 		INNER JOIN pgledger_accounts_view ta ON t.to_account_id = ta.id
+		LEFT JOIN pgledger_idempotency_keys_view k ON t.id = k.transfer_id
 		ORDER BY t.event_at, fa.name, ta.name, t.amount, t.metadata::TEXT`)
 	require.NoError(t, err)
 	defer rows.Close()
 	var out []transferRow
 	for rows.Next() {
 		var r transferRow
-		require.NoError(t, rows.Scan(&r.From, &r.To, &r.Amount, &r.Metadata))
+		require.NoError(t, rows.Scan(&r.From, &r.To, &r.Amount, &r.Metadata, &r.IdempotencyKey))
 		out = append(out, r)
 	}
 	require.NoError(t, rows.Err())
@@ -99,6 +100,44 @@ func TestRun(t *testing.T) {
 		{"USD->EUR", "available -> liquidity.usd", "USD"},
 		{"USD->EUR", "liquidity.eur -> eur.available", "EUR"},
 	}, legs)
+
+	type keyed struct{ Transfers, Keyed, Keys int }
+	rows, err = admin.Query(t.Context(), `
+		SELECT
+			t.metadata ->> 'kind',
+			count(*),
+			count(k.idempotency_key),
+			count(DISTINCT k.idempotency_key)
+		FROM pgledger_transfers_view t
+		LEFT JOIN pgledger_idempotency_keys_view k ON t.id = k.transfer_id
+		GROUP BY 1`)
+	require.NoError(t, err)
+	kinds := map[string]keyed{}
+	for rows.Next() {
+		var kind string
+		var k keyed
+		require.NoError(t, rows.Scan(&kind, &k.Transfers, &k.Keyed, &k.Keys))
+		kinds[kind] = k
+	}
+	require.NoError(t, rows.Err())
+	for _, kind := range []string{"payment_created", "refund_created"} {
+		k := kinds[kind]
+		assert.Positive(t, k.Keyed, kind)
+		assert.Equal(t, k.Keyed, k.Keys, kind)
+	}
+	assert.Positive(t, kinds["fx"].Keys)
+	assert.Equal(t, 2*kinds["fx"].Keys, kinds["fx"].Keyed, "each keyed fx's two legs share its key")
+	for _, kind := range []string{"payment_received", "refund_sent", "fee"} {
+		assert.Positive(t, kinds[kind].Transfers, kind)
+		assert.Zero(t, kinds[kind].Keyed, kind)
+	}
+
+	var malformed int
+	require.NoError(t, admin.QueryRow(t.Context(), `
+		SELECT count(*) FROM pgledger_idempotency_keys_view
+		WHERE idempotency_key !~ '^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'`,
+	).Scan(&malformed))
+	assert.Zero(t, malformed, "keys are version 4 UUIDs")
 
 	_, err = run(t, admin, opts)
 	assert.ErrorContains(t, err, "sample data already present")

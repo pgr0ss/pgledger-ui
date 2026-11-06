@@ -10,9 +10,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/pgr0ss/pgledger_visualizer/internal/db"
 	"github.com/pgr0ss/pgledger_visualizer/internal/ledger"
 	"github.com/pgr0ss/pgledger_visualizer/internal/testdb"
 	"github.com/pgr0ss/pgledger_visualizer/internal/web"
@@ -102,6 +104,23 @@ func TestTransferPage(t *testing.T) {
 	assert.Equal(t, http.StatusOK, status)
 	assert.Contains(t, body, "/accounts/"+f.Accounts["user1.external"])
 	assert.Contains(t, body, "/trace?key=payment_id&amp;value=p_123")
+}
+
+func TestTransferPageIdempotencyKey(t *testing.T) {
+	f := newFixture(t)
+	const key = "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+	id, err := db.New(f.Admin).CreateTransfer(t.Context(), db.CreateTransferParams{
+		FromAccountID: f.Accounts["a_b"], ToAccountID: f.Accounts["axb"], Amount: "1.00",
+		EventAt: time.Now(), IdempotencyKey: pgtype.Text{String: key, Valid: true},
+	})
+	require.NoError(t, err)
+
+	_, body := f.get(t, "/transfers/"+id)
+	assert.Contains(t, body, `<a href="/transfers?q=`+key+`"`)
+
+	_, body = f.get(t, "/transfers?partial=1&q="+key)
+	assert.Contains(t, body, `href="/transfers/`+id+`"`)
+	assert.Contains(t, body, "<code>7c9e6679…</code>")
 }
 
 func TestTraceGrid(t *testing.T) {
