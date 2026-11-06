@@ -190,6 +190,33 @@ func TestAccountPage(t *testing.T) {
 	assert.Contains(t, body, `Funds out <span class="amount">99.50</span> USD`)
 }
 
+func TestAccountNamesShortenPrefixedULIDs(t *testing.T) {
+	f := newFixture(t)
+	const name = "user.us_01M6QV2DW8F13A1JGEXYQ6VWQ7.available"
+	q := db.New(f.Admin)
+	id, err := q.CreateAccount(t.Context(), db.CreateAccountParams{
+		Name: name, Currency: "USD", AllowNegativeBalance: true, AllowPositiveBalance: true,
+	})
+	require.NoError(t, err)
+	tid, err := q.CreateTransfer(t.Context(), db.CreateTransferParams{
+		FromAccountID: id, ToAccountID: f.Accounts["a_b"], Amount: "1.00", EventAt: time.Now(),
+	})
+	require.NoError(t, err)
+
+	short := `<a href="/accounts/` + id + `" title="` + name + ` ` + id + `">user.us_…XYQ6VWQ7.available</a>`
+	_, body := f.get(t, "/accounts?partial=1&q=user.us_")
+	assert.Contains(t, body, short)
+	_, body = f.get(t, "/transfers?partial=1")
+	assert.Contains(t, body, short)
+	_, body = f.get(t, "/accounts/"+f.Accounts["a_b"]+"?view=crosstab")
+	assert.Contains(t, body, short)
+
+	_, body = f.get(t, "/transfers/"+tid)
+	assert.Contains(t, body, `<a href="/accounts/`+id+`" title="`+id+`">`+name+`</a>`)
+	_, body = f.get(t, "/accounts/"+id)
+	assert.Contains(t, body, "<h1>"+name+" ")
+}
+
 func TestAccountZoom(t *testing.T) {
 	f := newFixture(t)
 	from, err := f.store.GetTransfer(t.Context(), f.Transfers[1].ID)

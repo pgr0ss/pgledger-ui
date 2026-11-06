@@ -1,4 +1,5 @@
-{{define "acct"}}<a href="/accounts/{{.ID}}" title="{{.ID}}">{{.Name}}</a>{{end}}
+{{define "acct"}}<a href="/accounts/{{.ID}}" title="{{.Title}}">{{.ShortName}}</a>{{end}}
+{{define "acctFull"}}<a href="/accounts/{{.ID}}" title="{{.ID}}">{{.Name}}</a>{{end}}
 {{define "id"}}<code title="{{.}}">{{short .}}</code>{{end}}
 {{define "idemKey"}}<a href="/transfers?q={{.}}" title="{{.}}"><code>{{shortKey .}}</code></a>{{end}}
 {{define "amount"}}<span class="amount {{signClass .}}">{{.}}</span>{{end}}
@@ -79,7 +80,7 @@
             <th class="label" rowspan="{{$span}}">transfer</th>
             {{range $i, $c := $g.Columns}}
               <th data-col="{{$i}}" colspan="{{$span}}">
-                <a href="/accounts/{{$c.AccountID}}" title="{{$c.AccountID}}">{{$c.Name}}</a>
+                {{template "acct" (accountRef $c.AccountID $c.Name)}}
                 <span class="muted">{{$c.Currency}}</span>
               </th>
             {{end}}

@@ -7,7 +7,7 @@
     </dd>
     <dt>account</dt>
     <dd>
-      {{template "acct" (accountRef $e.AccountID $e.AccountName)}} <span class="muted">{{$e.Currency}}</span>
+      {{template "acctFull" (accountRef $e.AccountID $e.AccountName)}} <span class="muted">{{$e.Currency}}</span>
     </dd>
     <dt>amount</dt>
     <dd>
@@ -27,7 +27,7 @@
     </dd>
     <dt>counterparty</dt>
     <dd>
-      {{template "acct" (accountRef $e.CounterpartyID $e.CounterpartyName)}}
+      {{template "acctFull" (accountRef $e.CounterpartyID $e.CounterpartyName)}}
     </dd>
     <dt>created</dt>
     <dd>

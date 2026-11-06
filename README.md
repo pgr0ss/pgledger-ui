@@ -10,7 +10,9 @@ pgledger-visualizer serve --db postgres://user:pass@host:5432/dbname
 
 Features:
 
-- Live search across accounts, transfers, entries, idempotency keys and metadata. Every id and name is a link.
+- Live search across accounts, transfers, entries, idempotency keys and metadata. Every id and name is a link. Lists
+  and grids shorten ids, and prefixed ULIDs inside account names (`user.us_…XYQ6VWQ7.available`); hover for the full
+  value.
 - Transfers show the idempotency key they were created with, linking to every transfer created by that call.
 - Account pages show a balance chart (axes, gridlines, hover readout), total funds in and out with the top 5 accounts
   each way, the balance at any time (as recorded or by event time), and the account's entries. Drag across the chart to

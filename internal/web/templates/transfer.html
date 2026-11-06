@@ -1,7 +1,7 @@
 {{define "content"}}{{$t := .Transfer}}
   <h1>Transfer <code>{{short $t.ID}}</code></h1>
   <p class="flow">
-    {{template "acct" (accountRef $t.FromAccountID $t.FromName)}} → {{template "acct" (accountRef $t.ToAccountID $t.ToName)}}
+    {{template "acctFull" (accountRef $t.FromAccountID $t.FromName)}} → {{template "acctFull" (accountRef $t.ToAccountID $t.ToName)}}
     <strong class="amount">{{$t.Amount}} {{$t.Currency}}</strong>
   </p>
   <dl class="fields">

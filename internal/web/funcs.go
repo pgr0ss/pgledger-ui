@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"html/template"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
@@ -33,6 +34,19 @@ var funcs = template.FuncMap{
 
 type accountRef struct {
 	ID, Name string
+}
+
+var prefixedULID = regexp.MustCompile(`\b[A-Za-z][A-Za-z0-9]*_[0-7][0-9A-HJKMNP-TV-Z]{25}\b`)
+
+// ShortName shortens each prefixed ULID in the name as short does.
+func (a accountRef) ShortName() string { return prefixedULID.ReplaceAllStringFunc(a.Name, short) }
+
+// Title is the hover text: the id, preceded by the full name when ShortName shortens it.
+func (a accountRef) Title() string {
+	if a.ShortName() == a.Name {
+		return a.ID
+	}
+	return a.Name + " " + a.ID
 }
 
 type pillsView struct {
