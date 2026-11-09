@@ -36,7 +36,7 @@ func New(t *testing.T) (string, *pgxpool.Pool) {
 
 	conn, err := pgx.Connect(ctx, base)
 	if err != nil {
-		t.Fatalf("connect %s: %v (start postgres with: mise run up)", base, err)
+		t.Fatalf("connect %s: %v (start postgres with: mise run postgres-up)", base, err)
 	}
 	defer func() { _ = conn.Close(ctx) }()
 

@@ -66,8 +66,8 @@ go run ./cmd/pgledger-visualizer serve --db postgres://pgledger:pgledger@localho
 - `mise tasks`: list every task.
 - `mise run dev`: like `mise run serve`, but restarts (via watchexec) when Go, SQL, template or static files change.
 - `mise run check`: format SQL, templates, CSS and JS, regenerate sqlc code, tidy, test and lint.
-- `mise run test`: needs Postgres (`mise run up`, or `mise run up-background` to detach). Each test runs in its own
-  schema. Set `TEST_DATABASE_URL` to use another server.
+- `mise run test`: needs Postgres (`mise run postgres-up`, or `mise run postgres-up-background` to detach). Each test
+  runs in its own schema. Set `TEST_DATABASE_URL` to use another server.
 - `mise run sync-pgledger [dir]`: copy pgledger's schema files from `../pgledger` (or `dir`) into `internal/pgschema/sql`.
   Then run `mise run generate`, which re-checks every query against the new schema.
 
