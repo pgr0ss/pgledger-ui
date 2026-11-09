@@ -71,7 +71,7 @@ func New(store *ledger.Store) (http.Handler, error) {
 	mux.HandleFunc("GET /entries/{id}", s.entry)
 	mux.HandleFunc("GET /trace", s.trace)
 	mux.Handle("GET /static/", http.StripPrefix("/static/", s.serveAssets(http.FileServerFS(static))))
-	return logRequests(mux), nil
+	return logRequests(securityHeaders(mux)), nil
 }
 
 func hashAssets(static fs.FS) (map[string]string, error) {
@@ -138,6 +138,21 @@ func logRequests(next http.Handler) http.Handler {
 		rec := &statusRecorder{ResponseWriter: w}
 		next.ServeHTTP(rec, r)
 		slog.Info("request", "method", r.Method, "url", r.URL.RequestURI(), "status", cmp.Or(rec.status, http.StatusOK), "duration", time.Since(start))
+	})
+}
+
+// contentSecurityPolicy allows inline style attributes because the balance chart
+// positions its axis labels with them.
+const contentSecurityPolicy = "default-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; " +
+	"base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+
+func securityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h := w.Header()
+		h.Set("Content-Security-Policy", contentSecurityPolicy)
+		h.Set("X-Content-Type-Options", "nosniff")
+		h.Set("X-Frame-Options", "DENY")
+		next.ServeHTTP(w, r)
 	})
 }
 
