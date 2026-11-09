@@ -12,8 +12,12 @@ watchexec = "2.8.0"
 _.file = ".env"
 
 [tasks.up]
-description = "Start Postgres"
+description = "Start Postgres in the foreground"
 run = "docker compose up"
+
+[tasks.up-background]
+description = "Start Postgres in the background and wait until it's healthy"
+run = "docker compose up --detach --wait"
 
 [tasks.dbreset]
 description = "Drop and recreate the pgledger_visualizer database"
@@ -37,7 +41,7 @@ run = 'watchexec --restart --shell=none --exts go,sql,html,css,js,svg -- go run 
 [tasks.demo]
 description = "Fresh database, sample data, then serve"
 run = [
-  { task = "up" },
+  { task = "up-background" },
   { task = "dbreset" },
   { task = "seed" },
   { task = "serve" },
