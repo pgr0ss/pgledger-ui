@@ -27,6 +27,25 @@ Features:
   views). Two transactions starting in the same microsecond would be grouped too.
 - A header toggle switches displayed times between UTC and your browser's timezone.
 
+## Try it with Docker
+
+[`docker-compose.demo.yml`](docker-compose.demo.yml) needs only Docker. From a clone of this repository, it builds the
+visualizer, starts Postgres, loads sample data and serves:
+
+```sh
+docker compose -f docker-compose.demo.yml up --build
+```
+
+Then open http://127.0.0.1:8080. Ctrl-C stops it, and `docker compose -f docker-compose.demo.yml down` removes the
+containers.
+
+- `--build` rebuilds the image from the checkout, so it picks up local changes.
+- Postgres keeps its data in memory, so each start seeds fresh data spread over the 30 days before it.
+- `DEMO_PORT=8081` serves on another port.
+
+The [`Dockerfile`](Dockerfile) image runs `serve` on `0.0.0.0:8080` by default:
+`docker run -p 127.0.0.1:8080:8080 -e DATABASE_URL=… <image>`.
+
 ## Quickstart
 
 ```sh
@@ -93,6 +112,7 @@ op run --env-file=prod.env -- pgledger-visualizer serve
 - `mise run check`: format SQL, templates, CSS and JS, regenerate sqlc code, tidy, test and lint.
 - `mise run test`: needs Postgres (`mise run postgres-up`, or `mise run postgres-up-background` to detach). Each test
   runs in its own schema. Set `TEST_DATABASE_URL` to use another server.
+- Bumping `go` in `mise.toml`: bump the `golang` image in `Dockerfile` too.
 - `mise run sync-pgledger [dir]`: copy pgledger's schema files from `../pgledger` (or `dir`) into `internal/pgschema/sql`.
   Then run `mise run generate`, which re-checks every query against the new schema.
 
