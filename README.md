@@ -71,8 +71,8 @@ go run ./cmd/pgledger-visualizer serve --db postgres://pgledger:pgledger@localho
 - `mise run sync-pgledger [dir]`: copy pgledger's schema files from `../pgledger` (or `dir`) into `internal/pgschema/sql`.
   Then run `mise run generate`, which re-checks every query against the new schema.
 
-All SQL lives in `internal/db/queries/*.sql`. sqlc (a `go tool` pinned in `go.mod`) compiles it into typed Go in
-`internal/db`, and sqlfluff formats and lints it with pgledger's config.
+All SQL lives in `internal/db/queries/*.sql`. sqlc (pinned in `mise.toml`) compiles it into typed Go in `internal/db`,
+and sqlfluff formats and lints it with pgledger's config.
 
 Templates in `internal/web/templates` are formatted and linted by [djLint](https://djlint.com) (Go template profile,
 `.djlintrc`). Keep each `{{if}}`, `{{range}}` and `{{end}}` on its own line and put conditionals inside attribute values

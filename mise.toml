@@ -3,6 +3,7 @@ go = "1.27.3"
 uv = "0.13.7"             # backs the pipx: installer
 golangci-lint = "2.15.0"
 "pipx:sqlfluff" = "4.5.0"
+sqlc = "1.31.1"           # registry resolves to aqua:sqlc-dev/sqlc
 "pipx:djlint" = "1.49.9"
 biome = "2.6.4"
 watchexec = "2.8.0"
@@ -46,11 +47,11 @@ run = [
 run = "go test -race ./..."
 
 [tasks.generate]
-run = "go tool sqlc generate"
+run = "sqlc generate"
 
 [tasks.sqlc-check]
 description = "Fail if queries don't compile or generated code is stale"
-run = ["go tool sqlc compile", "go tool sqlc diff"]
+run = ["sqlc compile", "sqlc diff"]
 
 [tasks.lint-sql]
 run = "sqlfluff lint"
