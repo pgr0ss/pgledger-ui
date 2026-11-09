@@ -1,0 +1,28 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "labels": [
+    "dependencies"
+  ],
+  "packageRules": [
+    {
+      "matchPackageNames": [
+        "**"
+      ],
+      "addLabels": [
+        "{{datasource}}"
+      ]
+    }
+  ],
+  "postUpdateOptions": [
+    "gomodTidy",
+    "gomodUpdateImportPaths"
+  ],
+  "minimumReleaseAge": "7 days",
+  "prConcurrentLimit": 0,
+  "lockFileMaintenance": {
+    "enabled": true
+  }
+}
