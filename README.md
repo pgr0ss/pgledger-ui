@@ -112,6 +112,7 @@ op run --env-file=prod.env -- pgledger-visualizer serve
 - `mise run check`: format SQL, templates, CSS and JS, regenerate sqlc code, tidy, test and lint.
 - `mise run test`: needs Postgres (`mise run postgres-up`, or `mise run postgres-up-background` to detach). Each test
   runs in its own schema. Set `TEST_DATABASE_URL` to use another server.
+- `mise run psql`: open psql in the compose Postgres container on the `pgledger_visualizer` database.
 - Bumping `go` in `mise.toml`: bump the `golang` image in `Dockerfile` too.
 - `mise run sync-pgledger [dir]`: copy pgledger's schema files from `../pgledger` (or `dir`) into `internal/pgschema/sql`.
   Then run `mise run generate`, which re-checks every query against the new schema.

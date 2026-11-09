@@ -26,6 +26,10 @@ run = [
   "docker compose exec postgres createdb -U pgledger pgledger_visualizer",
 ]
 
+[tasks.psql]
+description = "Open psql on the pgledger_visualizer database; extra args go to psql"
+run = "docker compose exec postgres psql -U pgledger pgledger_visualizer"
+
 [tasks.seed]
 description = "Install pgledger if missing and load sample data; extra args go to `seed`"
 run = 'go run ./cmd/pgledger-visualizer seed --install-schema --database-url "${DATABASE_URL:-postgres://pgledger:pgledger@localhost:${POSTGRES_PORT:-5432}/pgledger_visualizer}"'
