@@ -7,6 +7,9 @@ SELECT
         FALSE
     )::BOOLEAN AS installed;
 
+-- name: IdempotencyKeysInstalled :one
+SELECT (to_regclass('pgledger_idempotency_keys_view') IS NOT NULL)::BOOLEAN AS installed;
+
 -- name: ListAccounts :many
 SELECT
     id,
@@ -91,6 +94,54 @@ FROM pgledger_transfers_view t
 INNER JOIN pgledger_accounts_view fa ON t.from_account_id = fa.id
 INNER JOIN pgledger_accounts_view ta ON t.to_account_id = ta.id
 LEFT JOIN pgledger_idempotency_keys_view k ON t.id = k.transfer_id
+WHERE t.id = sqlc.arg(id)::TEXT;
+
+-- ListTransfersNoKeys and GetTransferNoKeys serve pgledger versions that
+-- predate pgledger_idempotency_keys_view.
+
+-- name: ListTransfersNoKeys :many
+SELECT
+    t.id,
+    t.from_account_id,
+    fa.name AS from_name,
+    t.to_account_id,
+    ta.name AS to_name,
+    fa.currency,
+    t.amount::TEXT AS amount,
+    t.created_at,
+    t.event_at,
+    t.metadata,
+    ''::TEXT AS idempotency_key
+FROM pgledger_transfers_view t
+INNER JOIN pgledger_accounts_view fa ON t.from_account_id = fa.id
+INNER JOIN pgledger_accounts_view ta ON t.to_account_id = ta.id
+WHERE
+    (
+        t.id ILIKE sqlc.arg(prefix)::TEXT
+        OR t.metadata::TEXT ILIKE sqlc.arg(contains)::TEXT
+        OR fa.name ILIKE sqlc.arg(contains)::TEXT
+        OR ta.name ILIKE sqlc.arg(contains)::TEXT
+    )
+    AND (sqlc.arg(before)::TEXT = '' OR t.id < sqlc.arg(before)::TEXT)
+ORDER BY t.id DESC
+LIMIT sqlc.arg(row_limit)::BIGINT;
+
+-- name: GetTransferNoKeys :one
+SELECT
+    t.id,
+    t.from_account_id,
+    fa.name AS from_name,
+    t.to_account_id,
+    ta.name AS to_name,
+    fa.currency,
+    t.amount::TEXT AS amount,
+    t.created_at,
+    t.event_at,
+    t.metadata,
+    ''::TEXT AS idempotency_key
+FROM pgledger_transfers_view t
+INNER JOIN pgledger_accounts_view fa ON t.from_account_id = fa.id
+INNER JOIN pgledger_accounts_view ta ON t.to_account_id = ta.id
 WHERE t.id = sqlc.arg(id)::TEXT;
 
 -- name: ListEntries :many

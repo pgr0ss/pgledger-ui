@@ -29,11 +29,16 @@ type fixture struct {
 func newFixture(t *testing.T) fixture {
 	t.Helper()
 	t.Parallel()
-	r := testdb.Recon(t)
+	return serve(t, testdb.Recon(t))
+}
+
+func serve(t *testing.T, r testdb.ReconData) fixture {
+	t.Helper()
 	pool, err := ledger.Connect(t.Context(), r.URL, nil)
 	require.NoError(t, err)
 	t.Cleanup(pool.Close)
-	store := ledger.NewStore(pool)
+	store, err := ledger.NewStore(t.Context(), pool)
+	require.NoError(t, err)
 	h, err := web.New(store)
 	require.NoError(t, err)
 	srv := httptest.NewServer(h)
@@ -121,6 +126,26 @@ func TestTransferPageIdempotencyKey(t *testing.T) {
 	_, body = f.get(t, "/transfers?partial=1&q="+key)
 	assert.Contains(t, body, `href="/transfers/`+id+`"`)
 	assert.Contains(t, body, "<code>7c9e6679…</code>")
+}
+
+func TestTransfersWithoutIdempotencyKeys(t *testing.T) {
+	f := newFixture(t)
+	id := f.Transfer(t, "p_123", "payment_created").ID
+	pages := []string{"/transfers/" + id, "/transfers?q=" + id, "/search?q=" + id}
+	for _, path := range pages {
+		_, body := f.get(t, path)
+		require.Contains(t, body, "idempotency key", path)
+	}
+
+	_, err := f.Admin.Exec(t.Context(), "DROP VIEW pgledger_idempotency_keys_view; DROP TABLE pgledger_idempotency_keys")
+	require.NoError(t, err)
+	f = serve(t, f.ReconData)
+	for _, path := range pages {
+		status, body := f.get(t, path)
+		assert.Equal(t, http.StatusOK, status, path)
+		assert.Contains(t, body, "/accounts/"+f.Accounts["user1.external"], path)
+		assert.NotContains(t, body, "idempotency key", path)
+	}
 }
 
 func TestTraceGrid(t *testing.T) {

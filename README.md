@@ -1,8 +1,8 @@
 # pgledger visualizer
 
 A read-only web UI for [pgledger](https://github.com/pgr0ss/pgledger) data. It reads only the public views
-(`pgledger_accounts_view`, `pgledger_transfers_view`, `pgledger_entries_view`, `pgledger_idempotency_keys_view`) and
-connects with `default_transaction_read_only=on`.
+(`pgledger_accounts_view`, `pgledger_transfers_view`, `pgledger_entries_view`, and `pgledger_idempotency_keys_view` when
+present) and connects with `default_transaction_read_only=on`.
 
 ```sh
 pgledger-visualizer serve --database-url postgres://user:pass@host:5432/dbname
@@ -13,7 +13,9 @@ Features:
 - Live search across accounts, transfers, entries, idempotency keys and metadata. Every id and name is a link. Lists
   and grids shorten ids, and prefixed ULIDs inside account names (`user.us_…XYQ6VWQ7.available`); hover for the full
   value.
-- Transfers show the idempotency key they were created with, linking to every transfer created by that call.
+- Transfers show the idempotency key they were created with, linking to every transfer created by that call. pgledger
+  versions without `pgledger_idempotency_keys_view` work too; the UI then hides idempotency keys. It checks for the view
+  at startup.
 - Account pages show a balance chart (axes, gridlines, hover readout), total funds in and out with the top 5 accounts
   each way, the balance at any time (as recorded or by event time), and the account's entries. Drag across the chart to
   zoom the chart, funds, entries and grids to that `created_at` range.

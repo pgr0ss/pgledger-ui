@@ -24,9 +24,24 @@ const (
 
 var ErrNotFound = errors.New("not found")
 
-type Store struct{ q *db.Queries }
+type Store struct {
+	q                          *db.Queries
+	idempotencyKeysTableExists bool
+}
 
-func NewStore(pool *pgxpool.Pool) *Store { return &Store{q: db.New(pool)} }
+// NewStore detects whether pgledger_idempotency_keys_view exists; pgledger
+// versions before idempotency keys lack it.
+func NewStore(ctx context.Context, pool *pgxpool.Pool) (*Store, error) {
+	q := db.New(pool)
+	keys, err := q.IdempotencyKeysInstalled(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &Store{q: q, idempotencyKeysTableExists: keys}, nil
+}
+
+// IdempotencyKeysTableExists reports whether transfers carry idempotency keys.
+func (s *Store) IdempotencyKeysTableExists() bool { return s.idempotencyKeysTableExists }
 
 type Account struct {
 	ID, Name, Currency, Balance                string
@@ -219,26 +234,47 @@ func (s *Store) GetAccount(ctx context.Context, id string) (Account, error) {
 
 func (s *Store) ListTransfers(ctx context.Context, f TransferFilter) ([]Transfer, bool, error) {
 	prefix, contains := patterns(f.Q)
-	rows, err := s.q.ListTransfers(ctx, db.ListTransfersParams{
-		Prefix: prefix, Contains: contains, Before: f.Before, RowLimit: int64(f.Limit + 1),
-	})
-	if err != nil {
-		return nil, false, err
+	p := db.ListTransfersParams{Prefix: prefix, Contains: contains, Before: f.Before, RowLimit: int64(f.Limit + 1)}
+	var out []Transfer
+	if s.idempotencyKeysTableExists {
+		rows, err := s.q.ListTransfers(ctx, p)
+		if err != nil {
+			return nil, false, err
+		}
+		out = make([]Transfer, len(rows))
+		for i, r := range rows {
+			out[i] = toTransfer(r)
+		}
+	} else {
+		rows, err := s.q.ListTransfersNoKeys(ctx, db.ListTransfersNoKeysParams(p))
+		if err != nil {
+			return nil, false, err
+		}
+		out = make([]Transfer, len(rows))
+		for i, r := range rows {
+			out[i] = toTransfer(db.ListTransfersRow(r))
+		}
 	}
-	rows, more := trim(rows, f.Limit)
-	out := make([]Transfer, len(rows))
-	for i, r := range rows {
-		out[i] = toTransfer(r)
-	}
+	out, more := trim(out, f.Limit)
 	return out, more, nil
 }
 
 func (s *Store) GetTransfer(ctx context.Context, id string) (Transfer, error) {
-	r, err := s.q.GetTransfer(ctx, id)
-	if err != nil {
-		return Transfer{}, notFound(err)
+	var r db.ListTransfersRow
+	if s.idempotencyKeysTableExists {
+		row, err := s.q.GetTransfer(ctx, id)
+		if err != nil {
+			return Transfer{}, notFound(err)
+		}
+		r = db.ListTransfersRow(row)
+	} else {
+		row, err := s.q.GetTransferNoKeys(ctx, id)
+		if err != nil {
+			return Transfer{}, notFound(err)
+		}
+		r = db.ListTransfersRow(row)
 	}
-	return toTransfer(db.ListTransfersRow(r)), nil
+	return toTransfer(r), nil
 }
 
 func (s *Store) ListEntries(ctx context.Context, f EntryFilter) ([]Entry, bool, error) {

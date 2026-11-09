@@ -23,7 +23,9 @@ func reconStore(t *testing.T) (testdb.ReconData, *ledger.Store) {
 	pool, err := ledger.Connect(t.Context(), r.URL, nil)
 	require.NoError(t, err)
 	t.Cleanup(pool.Close)
-	return r, ledger.NewStore(pool)
+	s, err := ledger.NewStore(t.Context(), pool)
+	require.NoError(t, err)
+	return r, s
 }
 
 func accountNames(accounts []ledger.Account) []string {

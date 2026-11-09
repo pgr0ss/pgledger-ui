@@ -122,7 +122,11 @@ func serve(ctx context.Context, args []string) error {
 		return err
 	}
 	defer pool.Close()
-	h, err := web.New(ledger.NewStore(pool))
+	store, err := ledger.NewStore(ctx, pool)
+	if err != nil {
+		return err
+	}
+	h, err := web.New(store)
 	if err != nil {
 		return err
 	}

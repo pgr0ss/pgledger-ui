@@ -52,7 +52,9 @@ func New(store *ledger.Store) (http.Handler, error) {
 	}
 	s := &server{store: store, pages: map[string]*template.Template{}, assets: assets}
 	for _, name := range pageNames {
-		t, err := template.New(name).Funcs(funcs).Funcs(template.FuncMap{"asset": s.asset}).ParseFS(templateFS,
+		t, err := template.New(name).Funcs(funcs).Funcs(template.FuncMap{
+			"asset": s.asset, "idempotencyKeysTableExists": store.IdempotencyKeysTableExists,
+		}).ParseFS(templateFS,
 			"templates/layout.html", "templates/partials.html", "templates/"+name+".html")
 		if err != nil {
 			return nil, fmt.Errorf("parse %s: %w", name, err)

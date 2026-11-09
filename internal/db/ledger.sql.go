@@ -375,6 +375,58 @@ func (q *Queries) GetTransfer(ctx context.Context, id string) (GetTransferRow, e
 	return i, err
 }
 
+const getTransferNoKeys = `-- name: GetTransferNoKeys :one
+SELECT
+    t.id,
+    t.from_account_id,
+    fa.name AS from_name,
+    t.to_account_id,
+    ta.name AS to_name,
+    fa.currency,
+    t.amount::TEXT AS amount,
+    t.created_at,
+    t.event_at,
+    t.metadata,
+    ''::TEXT AS idempotency_key
+FROM pgledger_transfers_view t
+INNER JOIN pgledger_accounts_view fa ON t.from_account_id = fa.id
+INNER JOIN pgledger_accounts_view ta ON t.to_account_id = ta.id
+WHERE t.id = $1::TEXT
+`
+
+type GetTransferNoKeysRow struct {
+	ID             string
+	FromAccountID  string
+	FromName       string
+	ToAccountID    string
+	ToName         string
+	Currency       string
+	Amount         string
+	CreatedAt      time.Time
+	EventAt        time.Time
+	Metadata       []byte
+	IdempotencyKey string
+}
+
+func (q *Queries) GetTransferNoKeys(ctx context.Context, id string) (GetTransferNoKeysRow, error) {
+	row := q.db.QueryRow(ctx, getTransferNoKeys, id)
+	var i GetTransferNoKeysRow
+	err := row.Scan(
+		&i.ID,
+		&i.FromAccountID,
+		&i.FromName,
+		&i.ToAccountID,
+		&i.ToName,
+		&i.Currency,
+		&i.Amount,
+		&i.CreatedAt,
+		&i.EventAt,
+		&i.Metadata,
+		&i.IdempotencyKey,
+	)
+	return i, err
+}
+
 const gridEntries = `-- name: GridEntries :many
 WITH picked AS (
     SELECT
@@ -479,6 +531,17 @@ func (q *Queries) GridEntries(ctx context.Context, arg GridEntriesParams) ([]Gri
 		return nil, err
 	}
 	return items, nil
+}
+
+const idempotencyKeysInstalled = `-- name: IdempotencyKeysInstalled :one
+SELECT (to_regclass('pgledger_idempotency_keys_view') IS NOT NULL)::BOOLEAN AS installed
+`
+
+func (q *Queries) IdempotencyKeysInstalled(ctx context.Context) (bool, error) {
+	row := q.db.QueryRow(ctx, idempotencyKeysInstalled)
+	var installed bool
+	err := row.Scan(&installed)
+	return installed, err
 }
 
 const listAccounts = `-- name: ListAccounts :many
@@ -813,6 +876,95 @@ func (q *Queries) ListTransfers(ctx context.Context, arg ListTransfersParams) ([
 	var items []ListTransfersRow
 	for rows.Next() {
 		var i ListTransfersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.FromAccountID,
+			&i.FromName,
+			&i.ToAccountID,
+			&i.ToName,
+			&i.Currency,
+			&i.Amount,
+			&i.CreatedAt,
+			&i.EventAt,
+			&i.Metadata,
+			&i.IdempotencyKey,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listTransfersNoKeys = `-- name: ListTransfersNoKeys :many
+
+SELECT
+    t.id,
+    t.from_account_id,
+    fa.name AS from_name,
+    t.to_account_id,
+    ta.name AS to_name,
+    fa.currency,
+    t.amount::TEXT AS amount,
+    t.created_at,
+    t.event_at,
+    t.metadata,
+    ''::TEXT AS idempotency_key
+FROM pgledger_transfers_view t
+INNER JOIN pgledger_accounts_view fa ON t.from_account_id = fa.id
+INNER JOIN pgledger_accounts_view ta ON t.to_account_id = ta.id
+WHERE
+    (
+        t.id ILIKE $1::TEXT
+        OR t.metadata::TEXT ILIKE $2::TEXT
+        OR fa.name ILIKE $2::TEXT
+        OR ta.name ILIKE $2::TEXT
+    )
+    AND ($3::TEXT = '' OR t.id < $3::TEXT)
+ORDER BY t.id DESC
+LIMIT $4::BIGINT
+`
+
+type ListTransfersNoKeysParams struct {
+	Prefix   string
+	Contains string
+	Before   string
+	RowLimit int64
+}
+
+type ListTransfersNoKeysRow struct {
+	ID             string
+	FromAccountID  string
+	FromName       string
+	ToAccountID    string
+	ToName         string
+	Currency       string
+	Amount         string
+	CreatedAt      time.Time
+	EventAt        time.Time
+	Metadata       []byte
+	IdempotencyKey string
+}
+
+// ListTransfersNoKeys and GetTransferNoKeys serve pgledger versions that
+// predate pgledger_idempotency_keys_view.
+func (q *Queries) ListTransfersNoKeys(ctx context.Context, arg ListTransfersNoKeysParams) ([]ListTransfersNoKeysRow, error) {
+	rows, err := q.db.Query(ctx, listTransfersNoKeys,
+		arg.Prefix,
+		arg.Contains,
+		arg.Before,
+		arg.RowLimit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListTransfersNoKeysRow
+	for rows.Next() {
+		var i ListTransfersNoKeysRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.FromAccountID,

@@ -17,15 +17,17 @@
     <dd>
       {{template "ts" $t.EventAt}}
     </dd>
-    <dt>idempotency key</dt>
-    <dd>
-      {{if $t.IdempotencyKey}}
-        <a href="/transfers?q={{$t.IdempotencyKey}}"
-           title="transfers created with this key"><code>{{$t.IdempotencyKey}}</code></a>
-      {{else}}
-        <span class="muted">none</span>
-      {{end}}
-    </dd>
+    {{if idempotencyKeysTableExists}}
+      <dt>idempotency key</dt>
+      <dd>
+        {{if $t.IdempotencyKey}}
+          <a href="/transfers?q={{$t.IdempotencyKey}}"
+             title="transfers created with this key"><code>{{$t.IdempotencyKey}}</code></a>
+        {{else}}
+          <span class="muted">none</span>
+        {{end}}
+      </dd>
+    {{end}}
     <dt>metadata</dt>
     <dd>
       {{template "pills" pills $t.Metadata ""}}
