@@ -28,15 +28,15 @@ run = [
 
 [tasks.seed]
 description = "Install pgledger if missing and load sample data; extra args go to `seed`"
-run = 'go run ./cmd/pgledger-visualizer seed --install-schema --db "${DATABASE_URL:-postgres://pgledger:pgledger@localhost:${POSTGRES_PORT:-5432}/pgledger_visualizer}"'
+run = 'go run ./cmd/pgledger-visualizer seed --install-schema --database-url "${DATABASE_URL:-postgres://pgledger:pgledger@localhost:${POSTGRES_PORT:-5432}/pgledger_visualizer}"'
 
 [tasks.serve]
 description = "Run the visualizer; extra args go to `serve`"
-run = 'go run ./cmd/pgledger-visualizer serve --db "${DATABASE_URL:-postgres://pgledger:pgledger@localhost:${POSTGRES_PORT:-5432}/pgledger_visualizer}"'
+run = 'go run ./cmd/pgledger-visualizer serve --database-url "${DATABASE_URL:-postgres://pgledger:pgledger@localhost:${POSTGRES_PORT:-5432}/pgledger_visualizer}"'
 
 [tasks.dev]
 description = "Like serve, but restarts when Go, SQL, template or static files change; extra args go to `serve`"
-run = 'watchexec --restart --shell=none --exts go,sql,html,css,js,svg -- go run ./cmd/pgledger-visualizer serve --db "${DATABASE_URL:-postgres://pgledger:pgledger@localhost:${POSTGRES_PORT:-5432}/pgledger_visualizer}"'
+run = 'watchexec --restart --shell=none --exts go,sql,html,css,js,svg -- go run ./cmd/pgledger-visualizer serve --database-url "${DATABASE_URL:-postgres://pgledger:pgledger@localhost:${POSTGRES_PORT:-5432}/pgledger_visualizer}"'
 
 [tasks.demo]
 description = "Fresh database, sample data, then serve"

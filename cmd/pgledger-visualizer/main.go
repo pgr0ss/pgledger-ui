@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -27,12 +28,12 @@ commands:
   serve   run the web UI (read-only)
   seed    load sample data
 
+Every flag can also be set by an environment variable, shown in each command's -h.
 run "pgledger-visualizer <command> -h" for flags`
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Fprintln(os.Stderr, usage)
-		os.Exit(2)
+		exitUsage(usage)
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -44,8 +45,7 @@ func main() {
 	case "seed":
 		err = runSeed(ctx, os.Args[2:])
 	default:
-		fmt.Fprintln(os.Stderr, usage)
-		os.Exit(2)
+		exitUsage(usage)
 	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
@@ -53,31 +53,71 @@ func main() {
 	}
 }
 
-func parse(fs *flag.FlagSet, args []string) string {
-	dbURL := fs.String("db", os.Getenv("DATABASE_URL"), "Postgres URL (default $DATABASE_URL)")
-	_ = fs.Parse(args)
-	if *dbURL == "" {
-		fmt.Fprintln(os.Stderr, "--db or DATABASE_URL is required")
-		os.Exit(2)
+// envName is the environment variable that sets a flag the command line omits:
+// DATABASE_URL for --database-url, else PGLEDGER_VISUALIZER_ plus the flag name
+// in upper snake case.
+func envName(flagName string) string {
+	name := strings.ToUpper(strings.ReplaceAll(flagName, "-", "_"))
+	if name == "DATABASE_URL" {
+		return name
 	}
-	return *dbURL
+	return "PGLEDGER_VISUALIZER_" + name
+}
+
+// parse parses args into fs. Each flag takes its value from the command line,
+// else its environment variable, else its default.
+func parse(fs *flag.FlagSet, args []string, getenv func(string) string) error {
+	var envErr error
+	fs.VisitAll(func(f *flag.Flag) {
+		name := envName(f.Name)
+		f.Usage += " (env " + name + ")"
+		if v := getenv(name); v != "" && envErr == nil {
+			if err := f.Value.Set(v); err != nil {
+				envErr = fmt.Errorf("invalid %s %q: %w", name, v, err)
+			}
+		}
+	})
+	if envErr != nil {
+		return envErr
+	}
+	return fs.Parse(args)
+}
+
+func exitUsage(msg string) {
+	fmt.Fprintln(os.Stderr, msg)
+	os.Exit(2)
+}
+
+type serveOptions struct {
+	databaseURL, addr string
+	slowMS            int
+}
+
+func serveFlags(o *serveOptions) *flag.FlagSet {
+	fs := flag.NewFlagSet("serve", flag.ExitOnError)
+	fs.StringVar(&o.databaseURL, "database-url", "", "Postgres URL")
+	fs.StringVar(&o.addr, "addr", "127.0.0.1:8080", "listen address")
+	fs.IntVar(&o.slowMS, "log-slow-queries-ms", -1, "log queries taking at least this many milliseconds; 0 logs all, -1 disables")
+	return fs
 }
 
 func serve(ctx context.Context, args []string) error {
-	fs := flag.NewFlagSet("serve", flag.ExitOnError)
-	addr := fs.String("addr", "127.0.0.1:8080", "listen address")
-	slowMS := fs.Int("log-slow-queries-ms", -1, "log queries taking at least this many milliseconds; 0 logs all, -1 disables")
-	dbURL := parse(fs, args)
-	if *slowMS < -1 {
-		fmt.Fprintln(os.Stderr, "--log-slow-queries-ms must be -1 or more")
-		os.Exit(2)
+	var o serveOptions
+	if err := parse(serveFlags(&o), args, os.Getenv); err != nil {
+		exitUsage(err.Error())
+	}
+	if o.databaseURL == "" {
+		exitUsage("--database-url or DATABASE_URL is required")
+	}
+	if o.slowMS < -1 {
+		exitUsage("--log-slow-queries-ms must be -1 or more")
 	}
 
 	var tracer pgx.QueryTracer
-	if *slowMS >= 0 {
-		tracer = ledger.SlowQueryLogger{Threshold: time.Duration(*slowMS) * time.Millisecond}
+	if o.slowMS >= 0 {
+		tracer = ledger.SlowQueryLogger{Threshold: time.Duration(o.slowMS) * time.Millisecond}
 	}
-	pool, err := ledger.Connect(ctx, dbURL, tracer)
+	pool, err := ledger.Connect(ctx, o.databaseURL, tracer)
 	if err != nil {
 		return err
 	}
@@ -87,10 +127,10 @@ func serve(ctx context.Context, args []string) error {
 		return err
 	}
 
-	srv := &http.Server{Addr: *addr, Handler: h, ReadHeaderTimeout: 5 * time.Second}
+	srv := &http.Server{Addr: o.addr, Handler: h, ReadHeaderTimeout: 5 * time.Second}
 	errc := make(chan error, 1)
 	go func() { errc <- srv.ListenAndServe() }()
-	slog.Info("listening on http://" + *addr)
+	slog.Info("listening on http://" + o.addr)
 
 	select {
 	case err := <-errc:
@@ -108,21 +148,39 @@ func serve(ctx context.Context, args []string) error {
 	return nil
 }
 
-func runSeed(ctx context.Context, args []string) error {
-	fs := flag.NewFlagSet("seed", flag.ExitOnError)
-	install := fs.Bool("install-schema", false, "install pgledger if its views are missing")
-	users := fs.Int("users", 20, "number of sample users")
-	seedValue := fs.Uint64("seed", 1, "random seed")
-	dbURL := parse(fs, args)
+type seedOptions struct {
+	databaseURL   string
+	installSchema bool
+	users         int
+	seed          uint64
+}
 
-	conn, err := pgx.Connect(ctx, dbURL)
+func seedFlags(o *seedOptions) *flag.FlagSet {
+	fs := flag.NewFlagSet("seed", flag.ExitOnError)
+	fs.StringVar(&o.databaseURL, "database-url", "", "Postgres URL")
+	fs.BoolVar(&o.installSchema, "install-schema", false, "install pgledger if its views are missing")
+	fs.IntVar(&o.users, "users", 20, "number of sample users")
+	fs.Uint64Var(&o.seed, "seed", 1, "random seed")
+	return fs
+}
+
+func runSeed(ctx context.Context, args []string) error {
+	var o seedOptions
+	if err := parse(seedFlags(&o), args, os.Getenv); err != nil {
+		exitUsage(err.Error())
+	}
+	if o.databaseURL == "" {
+		exitUsage("--database-url or DATABASE_URL is required")
+	}
+
+	conn, err := pgx.Connect(ctx, o.databaseURL)
 	if err != nil {
 		return err
 	}
 	defer func() { _ = conn.Close(context.Background()) }()
 
 	sum, err := seed.Run(ctx, conn, seed.Options{
-		Users: *users, Seed: *seedValue, Now: time.Now().UTC(), InstallSchema: *install,
+		Users: o.users, Seed: o.seed, Now: time.Now().UTC(), InstallSchema: o.installSchema,
 	})
 	if err != nil {
 		return err

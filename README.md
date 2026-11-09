@@ -5,7 +5,7 @@ A read-only web UI for [pgledger](https://github.com/pgr0ss/pgledger) data. It r
 connects with `default_transaction_read_only=on`.
 
 ```sh
-pgledger-visualizer serve --db postgres://user:pass@host:5432/dbname
+pgledger-visualizer serve --database-url postgres://user:pass@host:5432/dbname
 ```
 
 Features:
@@ -43,24 +43,46 @@ it into every task, including `mise run test`. Setting `DATABASE_URL` overrides 
 In `../pgledger`, run `just run-examples`. Then:
 
 ```sh
-go run ./cmd/pgledger-visualizer serve --db postgres://pgledger:pgledger@localhost:5432/pgledger
+go run ./cmd/pgledger-visualizer serve --database-url postgres://pgledger:pgledger@localhost:5432/pgledger
 ```
 
 `/trace?key=payment_id&value=p_123` reproduces the crosstab in pgledger's `examples/reconciliation.sql.out`.
 
 ## Commands
 
-- `pgledger-visualizer serve [--addr 127.0.0.1:8080] [--log-slow-queries-ms -1] [--db URL]`: binds to loopback by
-  default and logs every request. Responses carry a same-origin Content-Security-Policy, `X-Frame-Options: DENY` and
-  `X-Content-Type-Options: nosniff`. `--log-slow-queries-ms N` logs queries taking at least N ms with their arguments;
-  `0` logs every query, `-1` (default) disables query logging.
-- `pgledger-visualizer seed [--install-schema] [--users 20] [--seed 1] [--db URL]`: loads deterministic sample payment
+- `pgledger-visualizer serve [--addr 127.0.0.1:8080] [--log-slow-queries-ms -1] [--database-url URL]`: binds to
+  loopback by default and logs every request. Responses carry a same-origin Content-Security-Policy,
+  `X-Frame-Options: DENY` and `X-Content-Type-Options: nosniff`. `--log-slow-queries-ms N` logs queries taking at least
+  N ms with their arguments; `0` logs every query, `-1` (default) disables query logging.
+- `pgledger-visualizer seed [--install-schema] [--users 20] [--seed 1] [--database-url URL]`: loads deterministic sample
   flows into an empty database, spread over the last 30 days. pgledger stamps rows with `now()`, so the seed overwrites
   `created_at` on the accounts, transfers and entries it creates, giving each simulated transaction (an FX's two legs
   share one) a distinct `created_at`. Most client-initiated calls (payment and refund creation, FX) carry a UUID
   idempotency key. `--install-schema` installs pgledger first if its views are missing.
 
-`--db` defaults to `$DATABASE_URL`.
+### Environment variables
+
+Every flag can instead be set by an environment variable named after it in upper snake case; a flag on the command
+line wins. `--database-url` reads `DATABASE_URL`, and the rest add a `PGLEDGER_VISUALIZER_` prefix (`--addr` →
+`PGLEDGER_VISUALIZER_ADDR`, `--log-slow-queries-ms` → `PGLEDGER_VISUALIZER_LOG_SLOW_QUERIES_MS`, `--install-schema` →
+`PGLEDGER_VISUALIZER_INSTALL_SCHEMA`). Each command's `-h` lists them.
+
+Setting the database URL through `DATABASE_URL` rather than `--database-url` keeps its password out of `ps` output.
+
+With the [1Password CLI](https://developer.1password.com/docs/cli/), store the URL in an item and give `op run` a
+[secret reference](https://developer.1password.com/docs/cli/secret-references/) (`op://<vault>/<item>/<field>`).
+`op run` replaces references in the environment with their values and runs the command with them:
+
+```sh
+DATABASE_URL=op://Private/pgledger-prod/url op run -- pgledger-visualizer serve
+```
+
+The reference holds no secret, so it can also live in a committed env file:
+
+```sh
+echo 'DATABASE_URL=op://Private/pgledger-prod/url' > prod.env
+op run --env-file=prod.env -- pgledger-visualizer serve
+```
 
 ## Development
 
