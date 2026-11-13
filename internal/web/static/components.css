@@ -1,0 +1,404 @@
+/* One block per partial or shared element. /styleguide shows each of them. */
+@layer components {
+  /* Top bar (layout.html) */
+  .topbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-5);
+    padding: 10px var(--space-5);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .topbar-brand {
+    font-weight: 700;
+    color: var(--fg);
+  }
+  .topbar-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    flex: 1;
+  }
+  .topbar-link {
+    color: var(--muted);
+  }
+  .topbar-link.active {
+    color: var(--fg);
+    font-weight: 600;
+  }
+  .topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .topbar-github {
+    display: inline-flex;
+    color: var(--fg);
+    opacity: 0.6;
+  }
+  .topbar-github:hover {
+    opacity: 1;
+  }
+
+  /* Money and numbers (amount) */
+  .num,
+  .amount {
+    font-family: var(--font-mono);
+    font-size: var(--text-mono);
+  }
+
+  /* Metadata (pills, accountPills) */
+  .pills {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+  }
+  .pill {
+    display: inline-block;
+    padding: 0 7px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill);
+    background: var(--surface);
+    font-size: var(--text-sm);
+    white-space: nowrap;
+    color: var(--fg);
+  }
+  .pill b {
+    font-weight: 500;
+    color: var(--muted);
+  }
+  a.pill:hover {
+    border-color: var(--accent);
+    text-decoration: none;
+  }
+  .pill.raw {
+    font-family: var(--font-mono);
+  }
+
+  /* Key-value fields */
+  .fields {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: var(--space-1) var(--space-4);
+    margin: 0 0 var(--space-4);
+  }
+  .fields dt {
+    color: var(--muted);
+  }
+  .fields dd {
+    margin: 0;
+  }
+
+  /* List table (entryHead/entryRows, counterparties, every index page) */
+  .list {
+    border-collapse: collapse;
+    width: 100%;
+  }
+  .list th,
+  .list td {
+    text-align: left;
+    padding: var(--cell-pad);
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .list .num {
+    text-align: right;
+    white-space: nowrap;
+  }
+  .list th {
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .list tbody tr:hover {
+    background: var(--hover);
+  }
+
+  /* Search form */
+  .search {
+    display: flex;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+  }
+  .search input[type="search"] {
+    flex: 0 1 420px;
+  }
+  .search.big input[type="search"] {
+    flex: 1;
+    font-size: var(--text-lg);
+    padding: 10px 14px;
+  }
+
+  /* Tabs and orderToggle */
+  .tabs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1);
+    margin: var(--space-5) 0 var(--space-3);
+    border-bottom: 1px solid var(--border);
+  }
+  .tabs > a {
+    padding: 6px var(--space-3);
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+  }
+  .tabs > a.active {
+    color: var(--fg);
+    border-bottom-color: var(--accent);
+  }
+  .toggle {
+    margin-left: auto;
+    color: var(--muted);
+  }
+  .toggle a {
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+  }
+  .toggle a.active {
+    background: var(--surface);
+    color: var(--fg);
+  }
+
+  .pager {
+    display: flex;
+    gap: var(--space-4);
+  }
+
+  .banner {
+    background: var(--surface);
+    border-left: 3px solid var(--accent);
+    padding: 6px var(--space-3);
+  }
+
+  /* Balance chart (chart) */
+  .chart {
+    margin: 0 0 var(--space-4);
+  }
+  .chart-grid {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    column-gap: var(--space-2);
+  }
+  .chart .y-axis {
+    position: relative;
+    height: 160px;
+    font: var(--text-xs) var(--font-mono);
+    color: var(--muted);
+  }
+  .chart .y-axis span {
+    position: absolute;
+    right: 0;
+    transform: translateY(-50%);
+    white-space: nowrap;
+  }
+  .chart .plot {
+    position: relative;
+    height: 160px;
+    border-left: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    cursor: crosshair;
+    user-select: none;
+  }
+  .chart .hit {
+    position: absolute;
+    inset: 0;
+    cursor: inherit;
+  }
+  .chart .hit[href] {
+    cursor: pointer;
+  }
+  .chart .selection {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    background: var(--hover-strong);
+    pointer-events: none;
+  }
+  .balance-chart {
+    width: 100%;
+    height: 160px;
+    display: block;
+    overflow: visible;
+  }
+  .balance-chart .tick {
+    stroke: var(--border);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+  .balance-chart .zero {
+    stroke: var(--muted);
+    stroke-dasharray: 4 4;
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+  .balance-chart .line {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 2;
+    vector-effect: non-scaling-stroke;
+  }
+  .chart .x-axis {
+    grid-column: 2;
+    position: relative;
+    height: var(--space-5);
+  }
+  .chart .x-axis span {
+    position: absolute;
+    top: var(--space-1);
+    font: var(--text-xs) var(--font-mono);
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .chart .x-axis .middle {
+    transform: translateX(-50%);
+  }
+  .chart .x-axis .end {
+    transform: translateX(-100%);
+  }
+  .chart .guide {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 0;
+    border-left: 1px dashed var(--muted);
+    pointer-events: none;
+  }
+  .chart .dot {
+    position: absolute;
+    width: var(--space-2);
+    height: var(--space-2);
+    margin: calc(var(--space-1) * -1) 0 0 calc(var(--space-1) * -1);
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 2px var(--bg);
+    pointer-events: none;
+  }
+  .chart .readout {
+    position: absolute;
+    top: var(--space-1);
+    padding: 2px var(--space-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    font: var(--text-sm) var(--font-mono);
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .chart figcaption {
+    font-size: var(--text-sm);
+    margin-top: var(--space-1);
+  }
+
+  /* Crosstab and in/out grid (grid, gridCell) */
+  .grid-wrap {
+    overflow: auto;
+    max-height: 75vh;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .grid {
+    --row-height: calc(var(--text-base) * var(--leading) + 10px + 1px);
+    border-collapse: separate;
+    border-spacing: 0;
+    min-width: 100%;
+  }
+  .grid th,
+  .grid td {
+    padding: var(--cell-pad-dense);
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .grid td {
+    text-align: right;
+    white-space: nowrap;
+    font-family: var(--font-mono);
+    font-size: var(--text-mono);
+  }
+  .grid thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--surface);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  /* The in/out sub-header sticks just under the first header row. */
+  .grid thead tr.sub th {
+    top: var(--row-height);
+    color: var(--muted);
+    font-size: var(--text-sm);
+  }
+  .grid th.label {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    text-align: left;
+    font-weight: 400;
+    min-width: 260px;
+    background: var(--surface);
+  }
+  .grid thead th.label {
+    z-index: 3;
+  }
+  .grid th.label .when {
+    display: block;
+    color: var(--muted);
+    font-size: var(--text-sm);
+  }
+  .grid th.label.tx::before {
+    content: "";
+    position: absolute;
+    left: 3px;
+    top: 0;
+    bottom: -1px;
+    width: 3px;
+    background: var(--accent);
+  }
+  .grid th.label.tx-start::before {
+    top: 5px;
+    border-top-left-radius: 2px;
+    border-top-right-radius: 2px;
+  }
+  .grid th.label.tx-end::before {
+    bottom: 5px;
+    border-bottom-left-radius: 2px;
+    border-bottom-right-radius: 2px;
+  }
+  .tx-badge {
+    margin-left: 6px;
+    padding: 0 5px;
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-pill);
+    color: var(--accent);
+    font-size: var(--text-xs);
+    cursor: default;
+  }
+  .grid tfoot th.label,
+  .grid tfoot td {
+    font-weight: 600;
+    border-top: 2px solid var(--border);
+  }
+  .grid td.cell.pos {
+    background-image: linear-gradient(var(--pos-tint), var(--pos-tint));
+  }
+  .grid td.cell.neg {
+    background-image: linear-gradient(var(--neg-tint), var(--neg-tint));
+  }
+  .grid td.pos a {
+    color: var(--pos);
+  }
+  .grid td.neg a {
+    color: var(--neg);
+  }
+  .grid tbody tr:hover > *,
+  .grid tbody tr.tx-hover > *,
+  .grid .col-hover {
+    box-shadow: inset 0 0 0 999px var(--hover);
+  }
+  .grid tbody tr:hover > .col-hover {
+    box-shadow: inset 0 0 0 999px var(--hover-strong);
+  }
+}

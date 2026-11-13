@@ -60,6 +60,32 @@ document.addEventListener("click", (e) => {
   applyTimezone(document);
 });
 
+// Theme: System follows the OS; Light and Dark set data-theme, which tokens.css
+// maps to color-scheme. theme.js applies the saved choice before first paint.
+const THEME_KEY = "pgledger-visualizer.theme";
+const themes = ["system", "light", "dark"];
+const themeLabels = { system: "System", light: "Light", dark: "Dark" };
+
+function themeMode() {
+  const t = localStorage.getItem(THEME_KEY);
+  return themes.includes(t) ? t : "system";
+}
+
+function applyTheme() {
+  const mode = themeMode();
+  if (mode === "system") delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme = mode;
+  const toggle = document.querySelector("[data-theme-toggle]");
+  if (toggle) toggle.textContent = `Theme: ${themeLabels[mode]}`;
+}
+
+document.addEventListener("click", (e) => {
+  if (!e.target.closest("[data-theme-toggle]")) return;
+  const next = themes[(themes.indexOf(themeMode()) + 1) % themes.length];
+  localStorage.setItem(THEME_KEY, next);
+  applyTheme();
+});
+
 // The server always reads `at` as UTC, so convert a local entry before submit.
 document.addEventListener(
   "submit",
@@ -240,4 +266,5 @@ document.addEventListener("DOMContentLoaded", () => {
     chartZoom(plot);
   }
   applyTimezone(document);
+  applyTheme();
 });

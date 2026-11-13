@@ -39,7 +39,7 @@ func serve(t *testing.T, r testdb.ReconData) fixture {
 	t.Cleanup(pool.Close)
 	store, err := ledger.NewStore(t.Context(), pool)
 	require.NoError(t, err)
-	h, err := web.New(store)
+	h, err := web.New(store, web.Options{})
 	require.NoError(t, err)
 	srv := httptest.NewServer(h)
 	t.Cleanup(srv.Close)
@@ -59,7 +59,7 @@ func (f fixture) get(t *testing.T, path string) (int, string) {
 func TestStaticAssetsCachedByContentHash(t *testing.T) {
 	f := newFixture(t)
 	_, body := f.get(t, "/")
-	m := regexp.MustCompile(`href="(/static/app\.css\?v=\w+)"`).FindStringSubmatch(body)
+	m := regexp.MustCompile(`href="(/static/tokens\.css\?v=\w+)"`).FindStringSubmatch(body)
 	require.NotNil(t, m, body)
 
 	cacheControl := func(path string) string {
@@ -70,7 +70,7 @@ func TestStaticAssetsCachedByContentHash(t *testing.T) {
 		return res.Header.Get("Cache-Control")
 	}
 	assert.Equal(t, "public, max-age=31536000, immutable", cacheControl(m[1]))
-	assert.Empty(t, cacheControl("/static/app.css?v=stale"))
+	assert.Empty(t, cacheControl("/static/tokens.css?v=stale"))
 }
 
 func TestStaticAssetsRevalidateByETag(t *testing.T) {
@@ -96,7 +96,7 @@ func TestStaticAssetsRevalidateByETag(t *testing.T) {
 
 func TestStaticServesOnlyFiles(t *testing.T) {
 	f := newFixture(t)
-	status, _ := f.get(t, "/static/app.css")
+	status, _ := f.get(t, "/static/tokens.css")
 	require.Equal(t, http.StatusOK, status)
 
 	status, body := f.get(t, "/static/")
@@ -274,4 +274,23 @@ func TestAccountNotFound(t *testing.T) {
 	status, body := f.get(t, "/accounts/pgla_missing")
 	assert.Equal(t, http.StatusNotFound, status)
 	assert.Contains(t, body, "Not found: pgla_missing")
+}
+
+// The styleguide renders every partial from fixtures, so a template change that
+// breaks one fails here. It needs no database.
+func TestStyleguide(t *testing.T) {
+	t.Parallel()
+	h, err := web.New(nil, web.Options{})
+	require.NoError(t, err)
+	srv := httptest.NewServer(h)
+	t.Cleanup(srv.Close)
+	res, err := http.Get(srv.URL + "/styleguide")
+	require.NoError(t, err)
+	defer func() { _ = res.Body.Close() }()
+	body, err := io.ReadAll(res.Body)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, res.StatusCode, string(body))
+	assert.Contains(t, string(body), `<svg class="balance-chart"`)
+	assert.Contains(t, string(body), `class="tx-badge"`)
+	assert.Contains(t, string(body), `<p class="banner">Showing the most recent`)
 }

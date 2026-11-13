@@ -71,10 +71,12 @@ go run ./cmd/pgledger-visualizer serve --database-url postgres://pgledger:pgledg
 
 ## Commands
 
-- `pgledger-visualizer serve [--addr 127.0.0.1:8080] [--log-slow-queries-ms -1] [--database-url URL]`: binds to
+- `pgledger-visualizer serve [--addr 127.0.0.1:8080] [--log-slow-queries-ms -1] [--dev] [--database-url URL]`: binds to
   loopback by default and logs every request. Responses carry a same-origin Content-Security-Policy,
   `X-Frame-Options: DENY` and `X-Content-Type-Options: nosniff`. `--log-slow-queries-ms N` logs queries taking at least
-  N ms with their arguments; `0` logs every query, `-1` (default) disables query logging.
+  N ms with their arguments; `0` logs every query, `-1` (default) disables query logging. `--dev` (run from the
+  repository root) reads templates and static files from `internal/web` on every request and live-reloads open pages
+  when one changes.
 - `pgledger-visualizer seed [--install-schema] [--users 20] [--seed 1] [--database-url URL]`: loads deterministic sample
   flows into an empty database, spread over the last 30 days. pgledger stamps rows with `now()`, so the seed overwrites
   `created_at` on the accounts, transfers and entries it creates, giving each simulated transaction (an FX's two legs
@@ -108,7 +110,10 @@ op run --env-file=prod.env -- pgledger-visualizer serve
 ## Development
 
 - `mise tasks`: list every task.
-- `mise run dev`: like `mise run serve`, but restarts (via watchexec) when Go, SQL, template or static files change.
+- `mise run dev`: `serve --dev`, restarted (via watchexec) when Go or SQL files change. Template and CSS edits apply
+  without a restart: pages reload, and stylesheets are swapped in place.
+- `/styleguide` shows the design tokens and every partial in each of its states, from fixture data. Open it next to
+  `mise run dev` when working on the design.
 - `mise run check`: format SQL, templates, CSS and JS, regenerate sqlc code, tidy, test and lint.
 - `mise run test`: needs Postgres (`mise run postgres-up`, or `mise run postgres-up-background` to detach). Each test
   runs in its own schema. Set `TEST_DATABASE_URL` to use another server.
@@ -124,7 +129,18 @@ Templates in `internal/web/templates` are formatted and linted by [djLint](https
 `.djlintrc`). Keep each `{{if}}`, `{{range}}` and `{{end}}` on its own line and put conditionals inside attribute values
 (`class="{{if …}}active{{end}}"`), not around attributes; djLint misformats the other forms.
 
-`internal/web/static` (CSS and JS) is formatted and linted by [Biome](https://biomejs.dev) (`biome.json`).
+`internal/web/static` (CSS and JS) is formatted and linted by [Biome](https://biomejs.dev) (`biome.json`). The CSS
+uses cascade layers, declared in `tokens.css` and linked in that order from `layout.html`:
 
-Stack: Go with pgx, `html/template`, about 130 lines of vanilla JS and hand-written CSS, all embedded in one binary. No npm
+- `tokens.css`: colors (each written once with `light-dark()`; tints derived with `color-mix()`), type, space and
+  radius scales. Use these variables rather than raw values.
+- `base.css`: element defaults.
+- `components.css`: one block per partial or shared element, styled by class name.
+- `pages.css`: layout used by a single page.
+- `utilities.css`: `.muted`, `.pos`, `.neg`, `.zero`, `.error`. The last layer, so these always win.
+
+Later layers win over earlier ones whatever the selector specificity. The header's theme toggle sets `data-theme` on
+`<html>`, which switches `color-scheme`.
+
+Stack: Go with pgx, `html/template`, a few hundred lines of vanilla JS and hand-written CSS, all embedded in one binary. No npm
 and no build step.

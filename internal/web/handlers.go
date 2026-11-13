@@ -407,3 +407,16 @@ func flattenGrid(g ledger.Grid) []traceTransfer {
 	}
 	return out
 }
+
+// chartView is what the chart partial needs: the chart and its caption.
+type chartView struct {
+	Chart    *Chart
+	Currency string
+	Count    int
+	First    time.Time
+	Capped   bool
+}
+
+func (p accountPage) ChartView() chartView {
+	return chartView{Chart: p.Chart, Currency: p.Account.Currency, Count: p.ChartCount, First: p.ChartFirst, Capped: p.ChartCapped}
+}

@@ -35,51 +35,7 @@
       {{template "accountPills" $a.Metadata}}
     </dd>
   </dl>
-  {{with .Chart}}
-    <figure class="chart" data-currency="{{$a.Currency}}">
-      <div class="chart-grid">
-        {{/* djlint:off H021 */}}
-        <div class="y-axis" style="width: {{.LabelWidth}}ch">
-          {{range .YTicks}}
-            <span style="top: {{.Pos}}%">{{.Label}}</span>
-          {{end}}
-        </div>
-        {{/* djlint:on */}}
-        <div class="plot" data-chart="{{.Data}}">
-          <svg class="balance-chart"
-               viewBox="0 0 600 160"
-               preserveAspectRatio="none"
-               role="img"
-               aria-label="balance over time">
-            {{range .YTicks}}
-              <line class="tick" x1="0" x2="600" y1="{{.Y}}" y2="{{.Y}}"></line>
-            {{end}}
-            {{if .HasZero}}
-              <line class="zero" x1="0" x2="600" y1="{{.ZeroY}}" y2="{{.ZeroY}}"></line>
-            {{end}}
-            <polyline class="line" points="{{.Points}}"></polyline>
-          </svg>
-          <div class="selection" hidden></div>
-          <div class="guide" hidden></div>
-          <div class="dot" hidden></div>
-          <div class="readout" hidden></div>
-          <a class="hit" aria-label="open this entry's transfer"></a>
-        </div>
-        {{/* djlint:off H021 */}}
-        <div class="x-axis">
-          {{range .XTicks}}
-            <span class="{{.Align}}" style="left: {{.Pos}}%">{{template "tsMinute" .At}}</span>
-          {{end}}
-        </div>
-        {{/* djlint:on */}}
-      </div>
-      <figcaption class="muted">
-        Balance ({{$a.Currency}}) · min {{.Min}} · max {{.Max}} · {{$.ChartCount}} entries
-        {{if $.ChartCapped}}(most recent {{$.ChartCount}}){{end}}
-        since {{template "ts" $.ChartFirst}} · click a point to open its transfer · drag across the chart to zoom
-      </figcaption>
-    </figure>
-  {{end}}
+  {{template "chart" .ChartView}}
   {{with .Zoom}}
     <p class="zoom">
       {{if .Invalid}}

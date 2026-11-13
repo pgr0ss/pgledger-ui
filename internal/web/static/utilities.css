@@ -1,0 +1,19 @@
+/* Single-purpose text classes. The last layer, so they win over component colors. */
+@layer utilities {
+  .muted {
+    color: var(--muted);
+  }
+  .error {
+    color: var(--neg);
+    white-space: pre-wrap;
+  }
+  .pos {
+    color: var(--pos);
+  }
+  .neg {
+    color: var(--neg);
+  }
+  .zero {
+    color: var(--muted);
+  }
+}

@@ -27,16 +27,17 @@ func TestServeFlagsFromEnv(t *testing.T) {
 		"DATABASE_URL":                            "postgres://env",
 		"PGLEDGER_VISUALIZER_ADDR":                "127.0.0.1:9000",
 		"PGLEDGER_VISUALIZER_LOG_SLOW_QUERIES_MS": "5",
+		"PGLEDGER_VISUALIZER_DEV":                 "true",
 	}
 	var o serveOptions
 	fs := serveFlags(&o)
-	assert.ElementsMatch(t, []string{"database-url", "addr", "log-slow-queries-ms"}, flagNames(fs))
+	assert.ElementsMatch(t, []string{"database-url", "addr", "log-slow-queries-ms", "dev"}, flagNames(fs))
 	require.NoError(t, parse(fs, nil, getenv(env)))
-	assert.Equal(t, serveOptions{databaseURL: "postgres://env", addr: "127.0.0.1:9000", slowMS: 5}, o)
+	assert.Equal(t, serveOptions{databaseURL: "postgres://env", addr: "127.0.0.1:9000", slowMS: 5, dev: true}, o)
 
 	o = serveOptions{}
 	require.NoError(t, parse(serveFlags(&o), []string{"--addr", "127.0.0.1:9001", "--database-url", "postgres://flag"}, getenv(env)))
-	assert.Equal(t, serveOptions{databaseURL: "postgres://flag", addr: "127.0.0.1:9001", slowMS: 5}, o)
+	assert.Equal(t, serveOptions{databaseURL: "postgres://flag", addr: "127.0.0.1:9001", slowMS: 5, dev: true}, o)
 }
 
 func TestSeedFlagsFromEnv(t *testing.T) {

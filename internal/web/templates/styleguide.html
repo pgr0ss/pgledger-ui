@@ -1,0 +1,235 @@
+{{define "content"}}
+  <h1>Styleguide</h1>
+  <p class="muted">
+    Tokens from <code>tokens.css</code> and every partial in <code>partials.html</code>, rendered from fixture data in
+    <code>styleguide.go</code>. With <code>serve --dev</code>, this page updates as you edit.
+  </p>
+  <section class="sg-section">
+    <h2>
+      Color <code>tokens.css</code>
+    </h2>
+    <div class="sg-swatches">
+      {{range .Colors}}
+        <div>
+          {{/* djlint:off H021 */}}
+          <div class="sg-swatch" style="background: var(--{{.}})"></div>
+          {{/* djlint:on */}}
+          <code>--{{.}}</code>
+        </div>
+      {{end}}
+    </div>
+  </section>
+  <section class="sg-section">
+    <h2>
+      Type <code>--text-*</code>
+    </h2>
+    <div class="sg-scale">
+      {{range .Text}}
+        <code>--text-{{.Name}}</code>
+        <code class="muted">{{.Value}}</code>
+        {{/* djlint:off H021 */}}
+        <span style="font-size: var(--text-{{.Name}})">user016.eur.available · -875.86 → -873.67</span>
+        {{/* djlint:on */}}
+      {{end}}
+    </div>
+  </section>
+  <section class="sg-section">
+    <h2>
+      Space and radius <code>--space-*</code> <code>--radius-*</code>
+    </h2>
+    <div class="sg-scale">
+      {{range .Space}}
+        <code>--space-{{.Name}}</code>
+        <code class="muted">{{.Value}}</code>
+        {{/* djlint:off H021 */}}
+        <div class="sg-bar" style="width: var(--space-{{.Name}})"></div>
+        {{/* djlint:on */}}
+      {{end}}
+      {{range .Radii}}
+        <code>--radius{{with .Name}}-{{.}}{{end}}</code>
+        <code class="muted">{{.Value}}</code>
+        {{/* djlint:off H021 */}}
+        <div class="sg-swatch"
+             style="width: 96px;
+                    height: 32px;
+                    background: var(--surface);
+                    border-radius: var(--radius{{with .Name}}-{{.}}{{end}})"></div>
+        {{/* djlint:on */}}
+      {{end}}
+    </div>
+  </section>
+  <section class="sg-section">
+    <h2>
+      Money <code>amount</code>
+    </h2>
+    <div class="sg-row">
+      {{range .Amounts}}
+        <div>
+          <span class="sg-label">{{signClass .}}</span>
+          {{template "amount" .}}
+        </div>
+      {{end}}
+      <div>
+        <span class="sg-label">balance change</span>
+        <span class="num">-875.86 → -873.67</span>
+      </div>
+    </div>
+  </section>
+  <section class="sg-section">
+    <h2>
+      Identifiers and time <code>id</code> <code>acct</code> <code>acctFull</code> <code>idemKey</code> <code>ts</code> <code>tsMinute</code>
+    </h2>
+    <div class="sg-row">
+      <div>
+        <span class="sg-label">id</span>
+        <a href="/transfers/{{.TransferID}}">{{template "id" .TransferID}}</a>
+      </div>
+      <div>
+        <span class="sg-label">acct</span>
+        {{template "acct" (accountRef .Account.ID .Account.Name)}}
+      </div>
+      <div>
+        <span class="sg-label">acctFull</span>
+        {{template "acctFull" (accountRef .Account.ID .Account.Name)}}
+      </div>
+      <div>
+        <span class="sg-label">idemKey</span>
+        {{template "idemKey" .IdemKey}}
+      </div>
+      <div>
+        <span class="sg-label">ts</span>
+        {{template "ts" .At}}
+      </div>
+      <div>
+        <span class="sg-label">tsMinute</span>
+        {{template "tsMinute" .At}}
+      </div>
+    </div>
+  </section>
+  <section class="sg-section">
+    <h2>
+      Metadata <code>pills</code> <code>accountPills</code>
+    </h2>
+    <div class="sg-row">
+      <div>
+        <span class="sg-label">traceable and nested fields</span>
+        {{template "pills" pills .Meta ""}}
+      </div>
+      <div>
+        <span class="sg-label">with a key hidden</span>
+        {{template "pills" pills .Meta "payment_id"}}
+      </div>
+      <div>
+        <span class="sg-label">not an object</span>
+        {{template "pills" pills .RawMeta ""}}
+      </div>
+      <div>
+        <span class="sg-label">account</span>
+        {{template "accountPills" .Account.Metadata}}
+      </div>
+    </div>
+  </section>
+  <section class="sg-section">
+    <h2>
+      Fields <code>dl.fields</code>
+    </h2>
+    {{$a := .Account}}
+    <dl class="fields">
+      <dt>balance</dt>
+      <dd>
+        {{template "amount" $a.Balance}} {{$a.Currency}}
+      </dd>
+      <dt>id</dt>
+      <dd>
+        <code>{{$a.ID}}</code>
+      </dd>
+      <dt>allow negative</dt>
+      <dd>
+        {{$a.AllowNegativeBalance}}
+      </dd>
+      <dt>created</dt>
+      <dd>
+        {{template "ts" $a.CreatedAt}}
+      </dd>
+    </dl>
+  </section>
+  <section class="sg-section">
+    <h2>
+      Balance chart <code>chart</code>
+    </h2>
+    {{template "chart" .Chart}}
+  </section>
+  <section class="sg-section">
+    <h2>
+      Lists <code>counterparties</code> <code>entryHead</code> <code>entryRows</code>
+    </h2>
+    <div class="flows">
+      <div class="in">
+        <h2>
+          Funds in <span class="amount">186.09</span> EUR
+        </h2>
+        {{template "counterparties" .TopIn}}
+      </div>
+      <div class="out">
+        <h2>
+          Funds out <span class="amount">0.00</span> EUR
+        </h2>
+        {{template "counterparties" .TopOut}}
+      </div>
+    </div>
+    <table class="list">
+      <thead>
+        {{template "entryHead"}}
+      </thead>
+      <tbody>
+        {{template "entryRows" .Entries}}
+      </tbody>
+    </table>
+    <p class="pager">
+      <a href="#">← Newer</a> <a href="#">Older →</a>
+    </p>
+  </section>
+  <section class="sg-section">
+    <h2>
+      Grid <code>grid</code> <code>gridCell</code>
+    </h2>
+    <p class="muted">The first two transfers share created_at, so they are bracketed as one database transaction.</p>
+    <nav class="tabs">
+      <a href="#" class="active">Crosstab</a>
+      <a href="#">In / Out</a>
+      {{template "orderToggle" .}}
+    </nav>
+    {{template "grid" .Crosstab}}
+    <h3>In / Out</h3>
+    {{template "grid" .InOut}}
+    <h3>Truncated</h3>
+    {{template "grid" .Capped}}
+    <h3>Empty</h3>
+    {{template "grid" .Empty}}
+  </section>
+  <section class="sg-section">
+    <h2>
+      Controls and messages <code>form.search</code> <code>.banner</code> <code>.error</code>
+    </h2>
+    <form class="search" action="/search" method="get">
+      <input type="search"
+             name="q"
+             placeholder="Search accounts, transfers, entries, metadata…">
+      <button type="submit">Search</button>
+    </form>
+    <form class="balance-at" action="/styleguide" method="get">
+      <label>
+        Balance at
+        <input type="datetime-local" name="at" step="1">
+      </label>
+      <select name="order">
+        <option value="created_at">created_at</option>
+        <option value="event_at">event_at</option>
+      </select>
+      <button type="button">Show</button>
+    </form>
+    <p class="banner">A banner, as shown above a truncated grid.</p>
+    <p class="error">Not found: pgla_01M7B5Q70SF2DVP7EXHEG5W51H</p>
+    <p class="muted">No transfers.</p>
+  </section>
+{{end}}
