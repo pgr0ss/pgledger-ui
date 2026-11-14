@@ -24,7 +24,7 @@ type Chart struct {
 	// LabelWidth is the longest y label in characters, for sizing the axis.
 	LabelWidth int
 	// Data is JSON for the hover readout and click-through:
-	// [{x, y (percent), b (balance), t (RFC3339), id (transfer, if any)}].
+	// [{x, y (percent), b (balance), t (RFC3339), id (transfer) and e (entry), if any}].
 	Data string
 }
 
@@ -46,6 +46,7 @@ type chartPoint struct {
 	B  string  `json:"b"`
 	T  string  `json:"t"`
 	ID string  `json:"id,omitempty"`
+	E  string  `json:"e,omitempty"`
 }
 
 const xTicks = 4
@@ -92,7 +93,7 @@ func BuildChart(points []ledger.BalancePoint, width, height float64) (*Chart, er
 			coords = append(coords, fmt.Sprintf("%.1f,%.1f", xi, y(values[i-1])))
 		}
 		coords = append(coords, fmt.Sprintf("%.1f,%.1f", xi, yi))
-		data[i] = chartPoint{X: xi / width * 100, Y: yi / height * 100, B: p.Balance, T: p.At.UTC().Format(time.RFC3339Nano), ID: p.TransferID}
+		data[i] = chartPoint{X: xi / width * 100, Y: yi / height * 100, B: p.Balance, T: p.At.UTC().Format(time.RFC3339Nano), ID: p.TransferID, E: p.EntryID}
 	}
 	dataJSON, err := json.Marshal(data)
 	if err != nil {

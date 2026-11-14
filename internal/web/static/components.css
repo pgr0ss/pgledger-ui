@@ -48,6 +48,53 @@
     font-size: var(--text-mono);
   }
 
+  /* Shortened ids (id, idemKey) stay on one line. */
+  .id {
+    white-space: nowrap;
+  }
+
+  /* Copy button (copy), beside a name or id in .copyable. It keeps its space while
+     hidden so the layout doesn't shift, and shows while its cell or value is hovered. */
+  .copyable {
+    white-space: nowrap;
+  }
+  .copy {
+    display: inline-flex;
+    vertical-align: -2px;
+    margin-left: var(--space-1);
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--muted);
+    opacity: 0;
+  }
+  :is(td, th, dd):hover .copy,
+  .copyable:hover > .copy,
+  .copy:focus-visible {
+    opacity: 1;
+  }
+  .copy:hover {
+    color: var(--accent);
+  }
+  .copy svg {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .copy .copied-icon,
+  .copy.copied .copy-icon {
+    display: none;
+  }
+  .copy.copied .copied-icon {
+    display: block;
+  }
+  .copy.copied {
+    color: var(--pos);
+    opacity: 1;
+  }
+
   /* Metadata (pills, accountPills) */
   .pills {
     display: inline-flex;
@@ -91,9 +138,13 @@
   }
 
   /* List table (entryHead/entryRows, counterparties, every index page) */
+  /* Sized to content: each column is as wide as its widest cell, wrapping only when the table runs out of room. */
+  /* Monospace throughout, so ids, names, dates and amounts line up the same way. */
   .list {
     border-collapse: collapse;
     width: 100%;
+    font-family: var(--font-mono);
+    font-size: var(--text-mono);
   }
   .list th,
   .list td {
@@ -112,6 +163,44 @@
   }
   .list tbody tr:hover {
     background: var(--hover);
+  }
+  /* The row for the point hovered on the balance chart. */
+  .list tbody tr.linked {
+    background: var(--hover-strong);
+  }
+  /* One pill per line keeps the metadata column narrow. */
+  .list .pills {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  /* Column picker (columnPicker) */
+  .column-picker {
+    margin: calc(var(--space-2) * -1) 0 var(--space-3);
+    color: var(--muted);
+  }
+  .column-picker summary {
+    cursor: pointer;
+    width: max-content;
+  }
+  .column-picker-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-4);
+    padding: var(--space-2) 0;
+    color: var(--fg);
+  }
+  .column-picker-options label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .column-picker-options input {
+    margin: 0;
+    padding: 0;
+    accent-color: var(--accent);
   }
 
   /* Search form */
@@ -395,6 +484,7 @@
   }
   .grid tbody tr:hover > *,
   .grid tbody tr.tx-hover > *,
+  .grid tbody tr.linked > *,
   .grid .col-hover {
     box-shadow: inset 0 0 0 999px var(--hover);
   }

@@ -3,7 +3,7 @@
   <dl class="fields">
     <dt>id</dt>
     <dd>
-      <code>{{$e.ID}}</code>
+      {{template "fullID" $e.ID}}
     </dd>
     <dt>account</dt>
     <dd>
@@ -23,7 +23,7 @@
     </dd>
     <dt>transfer</dt>
     <dd>
-      <a href="/transfers/{{$e.TransferID}}"><code>{{$e.TransferID}}</code></a>
+      <span class="copyable"><a href="/transfers/{{$e.TransferID}}"><code>{{$e.TransferID}}</code></a>{{template "copy" $e.TransferID}}</span>
     </dd>
     <dt>counterparty</dt>
     <dd>

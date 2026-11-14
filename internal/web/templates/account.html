@@ -1,6 +1,6 @@
 {{define "content"}}
   {{$a := .Account}}
-  <h1>{{$a.Name}} <span class="muted">{{$a.Currency}}</span></h1>
+  <h1><span class="copyable">{{$a.Name}}{{template "copy" $a.Name}}</span> <span class="muted">{{$a.Currency}}</span></h1>
   <dl class="fields">
     <dt>balance</dt>
     <dd>
@@ -8,7 +8,7 @@
     </dd>
     <dt>id</dt>
     <dd>
-      <code>{{$a.ID}}</code>
+      {{template "fullID" $a.ID}}
     </dd>
     <dt>version</dt>
     <dd>
@@ -102,7 +102,7 @@
         <strong>{{template "amount" .Balance.Amount}} {{$a.Currency}}</strong>
         ({{.Balance.Entries}} entries)
         {{if .Balance.EntryID}}
-          · set by entry <a href="/entries/{{.Balance.EntryID}}">{{template "id" .Balance.EntryID}}</a>
+          · set by entry {{template "entryLink" .Balance.EntryID}}
         {{end}}
       {{end}}
     </p>
@@ -125,7 +125,8 @@
           <tr>
             <th>created</th>
             <th class="num">amount</th>
-            <th class="num">prev → current balance</th>
+            <th class="num">previous</th>
+            <th class="num">current</th>
             <th>counterparty</th>
             <th>transfer</th>
             <th>entry</th>
@@ -134,13 +135,14 @@
         </thead>
         <tbody>
           {{range .Entries}}
-            <tr>
+            <tr data-entry="{{.ID}}">
               <td>{{template "ts" .CreatedAt}}</td>
               <td class="num">{{template "amount" .Amount}}</td>
-              <td class="num">{{.PreviousBalance}} → {{.CurrentBalance}}</td>
+              <td class="num">{{.PreviousBalance}}</td>
+              <td class="num">{{.CurrentBalance}}</td>
               <td>{{template "acct" (accountRef .CounterpartyID .CounterpartyName)}}</td>
-              <td><a href="/transfers/{{.TransferID}}">{{template "id" .TransferID}}</a></td>
-              <td><a href="/entries/{{.ID}}">{{template "id" .ID}}</a></td>
+              <td>{{template "transferLink" .TransferID}}</td>
+              <td>{{template "entryLink" .ID}}</td>
               <td>{{template "pills" pills .Metadata ""}}</td>
             </tr>
           {{end}}

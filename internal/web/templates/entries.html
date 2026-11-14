@@ -7,6 +7,7 @@
            placeholder="entry or transfer id, account name, or metadata"
            autofocus>
   </form>
+  {{template "columnPicker" "entries"}}
   <div id="results">{{template "results" .}}</div>
 {{end}}
 {{define "results"}}

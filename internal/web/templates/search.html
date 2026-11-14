@@ -55,7 +55,8 @@
             <tr>
               <th>id</th>
               <th>created</th>
-              <th>from → to</th>
+              <th data-column="from">from</th>
+              <th data-column="to">to</th>
               <th class="num">amount</th>
               {{if idempotencyKeysTableExists}}
                 <th>idempotency key</th>
@@ -66,9 +67,10 @@
           <tbody>
             {{range .Transfers}}
               <tr>
-                <td><a href="/transfers/{{.ID}}">{{template "id" .ID}}</a></td>
+                <td>{{template "transferLink" .ID}}</td>
                 <td>{{template "ts" .CreatedAt}}</td>
-                <td>{{template "acct" (accountRef .FromAccountID .FromName)}} → {{template "acct" (accountRef .ToAccountID .ToName)}}</td>
+                <td data-column="from">{{template "acct" (accountRef .FromAccountID .FromName)}}</td>
+                <td data-column="to">{{template "acct" (accountRef .ToAccountID .ToName)}}</td>
                 <td class="num">{{.Amount}} <span class="muted">{{.Currency}}</span></td>
                 {{if idempotencyKeysTableExists}}
                   <td>

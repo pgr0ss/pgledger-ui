@@ -92,9 +92,9 @@ type Balance struct {
 type BalancePoint struct {
 	At      time.Time
 	Balance string
-	// TransferID is the transfer whose entry produced Balance; empty for the
-	// synthetic start and end points added by Series.
-	TransferID string
+	// EntryID and TransferID are the entry that produced Balance and its
+	// transfer; empty for the synthetic start and end points added by Series.
+	EntryID, TransferID string
 }
 
 type Counterparty struct {
@@ -413,7 +413,7 @@ func (s *Store) BalanceHistory(ctx context.Context, accountID string, r TimeRang
 	rows, truncated := trim(rows, limit)
 	h := BalanceHistory{Points: make([]BalancePoint, len(rows)), Complete: !truncated}
 	for i, row := range rows {
-		h.Points[i] = BalancePoint{At: row.CreatedAt, Balance: row.Balance, TransferID: row.TransferID}
+		h.Points[i] = BalancePoint{At: row.CreatedAt, Balance: row.Balance, EntryID: row.ID, TransferID: row.TransferID}
 	}
 	slices.Reverse(h.Points)
 	h.Start = rows[len(rows)-1].PreviousBalance

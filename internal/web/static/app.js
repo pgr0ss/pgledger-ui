@@ -122,6 +122,7 @@ function liveSearch(form) {
       const res = await fetch(`${form.action}?${params}`, { signal: controller.signal });
       target.innerHTML = await res.text();
       applyTimezone(target);
+      applyColumnPickers();
     } catch (err) {
       if (err.name !== "AbortError") target.textContent = `Error: ${err.message}`;
     }
@@ -136,6 +137,68 @@ function liveSearch(form) {
     run();
   });
 }
+
+// Copy buttons: copy data-copy, then show a check mark briefly.
+document.addEventListener("click", async (e) => {
+  const button = e.target.closest("button[data-copy]");
+  if (!button) return;
+  e.preventDefault();
+  try {
+    await navigator.clipboard.writeText(button.dataset.copy);
+  } catch {
+    return;
+  }
+  button.classList.add("copied");
+  clearTimeout(button.copiedTimer);
+  button.copiedTimer = setTimeout(() => button.classList.remove("copied"), 1200);
+});
+
+// Column picker: hides list-table columns by their data-column key, saved per page.
+const columnsKey = (picker) => `pgledger-visualizer.hidden-columns.${picker.dataset.columnPicker}`;
+
+function hiddenColumns(picker) {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(columnsKey(picker))) || []);
+  } catch {
+    return new Set();
+  }
+}
+
+function applyColumnPicker(picker) {
+  const table = document.querySelector(`${picker.dataset.target} table.list`);
+  if (!table) return;
+  const hidden = hiddenColumns(picker);
+  const options = picker.querySelector(".column-picker-options");
+  if (!options.children.length) buildColumnOptions(options, table, hidden);
+  for (const cell of table.querySelectorAll("[data-column]")) {
+    cell.hidden = hidden.has(cell.dataset.column);
+  }
+}
+
+function buildColumnOptions(options, table, hidden) {
+  for (const th of table.querySelectorAll("thead th[data-column]")) {
+    const key = th.dataset.column;
+    const box = document.createElement("input");
+    box.type = "checkbox";
+    box.value = key;
+    box.checked = !hidden.has(key);
+    const label = document.createElement("label");
+    label.append(box, th.textContent.trim());
+    options.append(label);
+  }
+}
+
+function applyColumnPickers() {
+  for (const picker of document.querySelectorAll("[data-column-picker]")) applyColumnPicker(picker);
+}
+
+document.addEventListener("change", (e) => {
+  const picker = e.target.closest("[data-column-picker]");
+  if (!picker) return;
+  const hidden = [...picker.querySelectorAll("input:not(:checked)")].map((box) => box.value);
+  localStorage.setItem(columnsKey(picker), JSON.stringify(hidden));
+  applyColumnPicker(picker);
+});
 
 document.addEventListener("keydown", (e) => {
   if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
@@ -190,19 +253,53 @@ function chartHover(plot) {
   const [guide, dot, readout, link] = ["guide", "dot", "readout", "hit"].map((c) => plot.querySelector(`.${c}`));
   const currency = plot.closest(".chart").dataset.currency || "";
 
-  plot.addEventListener("mousemove", (e) => {
-    const p = nearestPoint(plot, points, e);
-    if (p.id) link.href = `/transfers/${encodeURIComponent(p.id)}`;
-    else link.removeAttribute("href");
+  const show = (p) => {
     guide.style.left = dot.style.left = `${p.x}%`;
     dot.style.top = `${p.y}%`;
     readout.textContent = `${p.b} ${currency} · ${formatTime(new Date(p.t), tzMode() === "local")}`;
     readout.style.left = p.x > 50 ? "" : `calc(${p.x}% + 8px)`;
     readout.style.right = p.x > 50 ? `calc(${100 - p.x}% + 8px)` : "";
     guide.hidden = dot.hidden = readout.hidden = false;
+  };
+  const hide = () => {
+    guide.hidden = dot.hidden = readout.hidden = true;
+  };
+
+  // The table rows for a point: its entry's row, else its transfer's grid row.
+  let linked = [];
+  const highlight = (p) => {
+    for (const row of linked) row.classList.remove("linked");
+    linked = [];
+    if (p?.e) linked = [...document.querySelectorAll(`tr[data-entry="${CSS.escape(p.e)}"]`)];
+    if (p?.id && !linked.length) linked = [...document.querySelectorAll(`tr[data-transfer="${CSS.escape(p.id)}"]`)];
+    for (const row of linked) row.classList.add("linked");
+  };
+
+  plot.addEventListener("mousemove", (e) => {
+    const p = nearestPoint(plot, points, e);
+    if (p.id) link.href = `/transfers/${encodeURIComponent(p.id)}`;
+    else link.removeAttribute("href");
+    show(p);
+    highlight(p);
   });
   plot.addEventListener("mouseleave", () => {
-    guide.hidden = dot.hidden = readout.hidden = true;
+    hide();
+    highlight(null);
+  });
+
+  // Hovering a table row marks its point on the chart.
+  const rowPoint = (row) =>
+    row.dataset.entry
+      ? points.find((p) => p.e === row.dataset.entry)
+      : points.findLast((p) => p.id === row.dataset.transfer);
+  document.addEventListener("mouseover", (e) => {
+    const row = e.target.closest("tr[data-entry], tr[data-transfer]");
+    const p = row && rowPoint(row);
+    if (p) show(p);
+  });
+  document.addEventListener("mouseout", (e) => {
+    const row = e.target.closest("tr[data-entry], tr[data-transfer]");
+    if (row && !row.contains(e.relatedTarget)) hide();
   });
 
   let downX = null;
@@ -267,4 +364,5 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   applyTimezone(document);
   applyTheme();
+  applyColumnPickers();
 });

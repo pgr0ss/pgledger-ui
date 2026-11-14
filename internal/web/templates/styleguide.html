@@ -82,7 +82,7 @@
     <div class="sg-row">
       <div>
         <span class="sg-label">id</span>
-        <a href="/transfers/{{.TransferID}}">{{template "id" .TransferID}}</a>
+        {{template "transferLink" .TransferID}}
       </div>
       <div>
         <span class="sg-label">acct</span>
@@ -141,7 +141,7 @@
       </dd>
       <dt>id</dt>
       <dd>
-        <code>{{$a.ID}}</code>
+        {{template "fullID" $a.ID}}
       </dd>
       <dt>allow negative</dt>
       <dd>
@@ -161,7 +161,7 @@
   </section>
   <section class="sg-section">
     <h2>
-      Lists <code>counterparties</code> <code>entryHead</code> <code>entryRows</code>
+      Lists <code>counterparties</code> <code>columnPicker</code> <code>entryHead</code> <code>entryRows</code>
     </h2>
     <div class="flows">
       <div class="in">
@@ -177,14 +177,17 @@
         {{template "counterparties" .TopOut}}
       </div>
     </div>
-    <table class="list">
-      <thead>
-        {{template "entryHead"}}
-      </thead>
-      <tbody>
-        {{template "entryRows" .Entries}}
-      </tbody>
-    </table>
+    {{template "columnPicker" "styleguide"}}
+    <div id="results">
+      <table class="list">
+        <thead>
+          {{template "entryHead"}}
+        </thead>
+        <tbody>
+          {{template "entryRows" .Entries}}
+        </tbody>
+      </table>
+    </div>
     <p class="pager">
       <a href="#">← Newer</a> <a href="#">Older →</a>
     </p>

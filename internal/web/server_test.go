@@ -125,7 +125,7 @@ func TestTransferPageIdempotencyKey(t *testing.T) {
 
 	_, body = f.get(t, "/transfers?partial=1&q="+key)
 	assert.Contains(t, body, `href="/transfers/`+id+`"`)
-	assert.Contains(t, body, "<code>7c9e6679…</code>")
+	assert.Contains(t, body, `<code class="id">7c9e6679…</code>`)
 }
 
 func TestTransfersWithoutIdempotencyKeys(t *testing.T) {
@@ -228,7 +228,7 @@ func TestAccountNamesShortenPrefixedULIDs(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	short := `<a href="/accounts/` + id + `" title="` + name + ` ` + id + `">user.us_…XYQ6VWQ7.available</a>`
+	short := `title="` + name + ` ` + id + `">user.us…Q6VWQ7.available</a>`
 	_, body := f.get(t, "/accounts?partial=1&q=user.us_")
 	assert.Contains(t, body, short)
 	_, body = f.get(t, "/transfers?partial=1")
@@ -237,9 +237,9 @@ func TestAccountNamesShortenPrefixedULIDs(t *testing.T) {
 	assert.Contains(t, body, short)
 
 	_, body = f.get(t, "/transfers/"+tid)
-	assert.Contains(t, body, `<a href="/accounts/`+id+`" title="`+id+`">`+name+`</a>`)
+	assert.Contains(t, body, `title="`+id+`">`+name+`</a>`)
 	_, body = f.get(t, "/accounts/"+id)
-	assert.Contains(t, body, "<h1>"+name+" ")
+	assert.Contains(t, body, `<span class="copyable">`+name)
 }
 
 func TestAccountZoom(t *testing.T) {

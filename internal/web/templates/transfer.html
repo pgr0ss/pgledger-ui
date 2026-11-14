@@ -7,7 +7,7 @@
   <dl class="fields">
     <dt>id</dt>
     <dd>
-      <code>{{$t.ID}}</code>
+      {{template "fullID" $t.ID}}
     </dd>
     <dt>created</dt>
     <dd>
@@ -21,8 +21,8 @@
       <dt>idempotency key</dt>
       <dd>
         {{if $t.IdempotencyKey}}
-          <a href="/transfers?q={{$t.IdempotencyKey}}"
-             title="transfers created with this key"><code>{{$t.IdempotencyKey}}</code></a>
+          <span class="copyable"><a href="/transfers?q={{$t.IdempotencyKey}}"
+                                    title="transfers created with this key"><code>{{$t.IdempotencyKey}}</code></a>{{template "copy" $t.IdempotencyKey}}</span>
         {{else}}
           <span class="muted">none</span>
         {{end}}
