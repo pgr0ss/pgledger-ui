@@ -19,7 +19,7 @@ const (
 	SearchLimit       = 8
 	MaxGridTransfers  = 500
 	ChartPoints       = 500
-	TopCounterparties = 5
+	TopCounterparties = 20
 )
 
 var ErrNotFound = errors.New("not found")

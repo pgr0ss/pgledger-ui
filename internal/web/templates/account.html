@@ -1,41 +1,85 @@
 {{define "content"}}
   {{$a := .Account}}
-  <h1><span class="copyable">{{$a.Name}}{{template "copy" $a.Name}}</span> <span class="muted">{{$a.Currency}}</span></h1>
-  <dl class="fields">
-    <dt>balance</dt>
-    <dd>
-      {{template "amount" $a.Balance}} {{$a.Currency}}
-    </dd>
-    <dt>id</dt>
-    <dd>
-      {{template "fullID" $a.ID}}
-    </dd>
-    <dt>version</dt>
-    <dd>
-      {{$a.Version}}
-    </dd>
-    <dt>allow negative</dt>
-    <dd>
-      {{$a.AllowNegativeBalance}}
-    </dd>
-    <dt>allow positive</dt>
-    <dd>
-      {{$a.AllowPositiveBalance}}
-    </dd>
-    <dt>created</dt>
-    <dd>
-      {{template "ts" $a.CreatedAt}}
-    </dd>
-    <dt>updated</dt>
-    <dd>
-      {{template "ts" $a.UpdatedAt}}
-    </dd>
-    <dt>metadata</dt>
-    <dd>
-      {{template "accountPills" $a.Metadata}}
-    </dd>
-  </dl>
-  {{template "chart" .ChartView}}
+  <h1><span class="kind">Account</span> <span class="copyable"><code>{{$a.Name}}</code>{{template "copy" $a.Name}}</span> <span class="muted">{{$a.Currency}}</span></h1>
+  {{/* Top row: the account's fields, then where its money came from and went. */}}
+  <div class="account-top">
+    <dl class="fields">
+      <dt>balance</dt>
+      <dd>
+        {{template "amount" $a.Balance}} {{$a.Currency}}
+      </dd>
+      <dt>
+        balance at (<span data-tz-label>UTC</span>)
+      </dt>
+      <dd>
+        <form action="/accounts/{{$a.ID}}" method="get" class="balance-at">
+          <input type="datetime-local"
+                 name="at"
+                 step="1"
+                 value="{{with .BalanceAt}}{{.Raw}}{{end}}"
+                 aria-label="time"
+                 data-tz-input>
+          <select name="order" aria-label="clock">
+            <option value="created_at" {{if eq .Order "created_at"}}selected{{end}}>created_at</option>
+            <option value="event_at" {{if eq .Order "event_at"}}selected{{end}}>event_at</option>
+          </select>
+          <input type="hidden" name="view" value="{{.View}}">
+          {{with .Zoom}}
+            {{if not .Invalid}}
+              <input type="hidden" name="from" value="{{.RawFrom}}">
+              <input type="hidden" name="to" value="{{.RawTo}}">
+            {{end}}
+          {{end}}
+          <button type="submit">Show</button>
+        </form>
+        {{with .BalanceAt}}
+          <p class="balance-result">
+            {{if .Invalid}}
+              <span class="neg">invalid time "{{.Raw}}"</span>
+            {{else}}
+              <strong>{{template "amount" .Balance.Amount}} {{$a.Currency}}</strong>
+              at {{template "ts" .At}}
+              ({{.Balance.Entries}} entries)
+              {{if .Balance.EntryID}}
+                · set by entry {{template "entryLink" .Balance.EntryID}}
+              {{end}}
+            {{end}}
+          </p>
+        {{end}}
+      </dd>
+      <dt>id</dt>
+      <dd>
+        {{template "fullID" $a.ID}}
+      </dd>
+      <dt>version</dt>
+      <dd>
+        {{$a.Version}}
+      </dd>
+      <dt>allow negative</dt>
+      <dd>
+        {{$a.AllowNegativeBalance}}
+      </dd>
+      <dt>allow positive</dt>
+      <dd>
+        {{$a.AllowPositiveBalance}}
+      </dd>
+      <dt>created</dt>
+      <dd>
+        {{template "ts" $a.CreatedAt}}
+      </dd>
+      <dt>updated</dt>
+      <dd>
+        {{template "ts" $a.UpdatedAt}}
+      </dd>
+      <dt>metadata</dt>
+      <dd>
+        {{template "accountPills" $a.Metadata}}
+      </dd>
+    </dl>
+    {{template "counterparties" (flow "funds in" .Flows.In $a.Currency "pos" .Flows.TopIn)}}
+    {{template "counterparties" (flow "funds out" .Flows.Out $a.Currency "neg" .Flows.TopOut)}}
+  </div>
+  {{/* The chart and the entries below it are one view: hover and click on either marks the other. */}}
   {{with .Zoom}}
     <p class="zoom">
       {{if .Invalid}}
@@ -57,56 +101,7 @@
       · <a href="{{withoutParams $.URL "from" "to"}}">Reset zoom</a>
     </p>
   {{end}}
-  <section class="flows">
-    <div class="in">
-      <h2>
-        Funds in <span class="amount">{{.Flows.In}}</span> {{$a.Currency}}
-      </h2>
-      {{template "counterparties" .Flows.TopIn}}
-    </div>
-    <div class="out">
-      <h2>
-        Funds out <span class="amount">{{.Flows.Out}}</span> {{$a.Currency}}
-      </h2>
-      {{template "counterparties" .Flows.TopOut}}
-    </div>
-  </section>
-  <form action="/accounts/{{$a.ID}}" method="get" class="balance-at">
-    <label>
-      Balance at (<span data-tz-label>UTC</span>)
-      <input type="datetime-local"
-             name="at"
-             step="1"
-             value="{{with .BalanceAt}}{{.Raw}}{{end}}"
-             data-tz-input>
-    </label>
-    <select name="order">
-      <option value="created_at" {{if eq .Order "created_at"}}selected{{end}}>created_at</option>
-      <option value="event_at" {{if eq .Order "event_at"}}selected{{end}}>event_at</option>
-    </select>
-    <input type="hidden" name="view" value="{{.View}}">
-    {{with .Zoom}}
-      {{if not .Invalid}}
-        <input type="hidden" name="from" value="{{.RawFrom}}">
-        <input type="hidden" name="to" value="{{.RawTo}}">
-      {{end}}
-    {{end}}
-    <button type="submit">Show</button>
-  </form>
-  {{with .BalanceAt}}
-    <p class="balance-result">
-      {{if .Invalid}}
-        <span class="neg">invalid time "{{.Raw}}"</span>
-      {{else}}
-        Balance at {{template "ts" .At}}:
-        <strong>{{template "amount" .Balance.Amount}} {{$a.Currency}}</strong>
-        ({{.Balance.Entries}} entries)
-        {{if .Balance.EntryID}}
-          · set by entry {{template "entryLink" .Balance.EntryID}}
-        {{end}}
-      {{end}}
-    </p>
-  {{end}}
+  {{template "chart" .ChartView}}
   <nav class="tabs">
     <a href="{{withParam .URL "view" "entries"}}"
        class="{{if eq .View "entries"}}active{{end}}">Entries</a>
@@ -125,12 +120,12 @@
           <tr>
             <th>created</th>
             <th class="num">amount</th>
-            <th class="num">previous</th>
-            <th class="num">current</th>
+            <th data-priority="3" class="num">previous</th>
+            <th data-priority="3" class="num">current</th>
             <th>counterparty</th>
-            <th>transfer</th>
-            <th>entry</th>
-            <th>metadata</th>
+            <th data-priority="2">transfer</th>
+            <th data-priority="3">entry</th>
+            <th data-priority="1">metadata</th>
           </tr>
         </thead>
         <tbody>
@@ -138,12 +133,12 @@
             <tr data-entry="{{.ID}}">
               <td>{{template "ts" .CreatedAt}}</td>
               <td class="num">{{template "amount" .Amount}}</td>
-              <td class="num">{{.PreviousBalance}}</td>
-              <td class="num">{{.CurrentBalance}}</td>
+              <td data-priority="3" class="num">{{.PreviousBalance}}</td>
+              <td data-priority="3" class="num">{{.CurrentBalance}}</td>
               <td>{{template "acct" (accountRef .CounterpartyID .CounterpartyName)}}</td>
-              <td>{{template "transferLink" .TransferID}}</td>
-              <td>{{template "entryLink" .ID}}</td>
-              <td>{{template "pills" pills .Metadata ""}}</td>
+              <td data-priority="2">{{template "transferLink" .TransferID}}</td>
+              <td data-priority="3">{{template "entryLink" .ID}}</td>
+              <td data-priority="1">{{template "pills" pills .Metadata ""}}</td>
             </tr>
           {{end}}
         </tbody>

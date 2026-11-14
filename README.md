@@ -26,6 +26,8 @@ Features:
   time, so shared `created_at` is the signal (exact across savepoints, which `xmin` is not, and visible through the
   views). Two transactions starting in the same microsecond would be grouped too.
 - A header toggle switches displayed times between UTC and your browser's timezone.
+- Light and dark themes. The header's theme toggle cycles System (follow the OS), Light and Dark, and the browser
+  remembers the choice.
 
 ## Try it with Docker
 

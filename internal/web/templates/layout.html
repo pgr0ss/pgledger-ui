@@ -29,6 +29,15 @@
           <a href="/trace" class="topbar-link{{if eq .Nav "trace"}} active{{end}}">Trace</a>
         </nav>
         <div class="topbar-actions">
+          {{/* Home and Search have their own search field. */}}
+          {{if ne .Nav "search"}}
+            <form action="/search" method="get" class="topbar-search" role="search">
+              <input type="search"
+                     name="q"
+                     placeholder="Search or paste an id"
+                     aria-label="Search accounts, transfers, entries and metadata">
+            </form>
+          {{end}}
           <button type="button" data-theme-toggle>Theme: System</button>
           <button type="button" class="tz" data-tz-toggle>Times: UTC</button>
           <a class="topbar-github"

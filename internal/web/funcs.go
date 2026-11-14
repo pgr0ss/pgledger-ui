@@ -29,7 +29,16 @@ var funcs = template.FuncMap{
 	"pills":           func(md ledger.Metadata, hide string) pillsView { return pillsView{md, hide} },
 	"maxGrid":         func() int { return ledger.MaxGridTransfers },
 	"accountRef":      func(id, name string) accountRef { return accountRef{id, name} },
-	"prettyJSON":      prettyJSON,
+	"flow": func(label, total, currency, sign string, rows []ledger.Counterparty) flowView {
+		return flowView{label, total, currency, sign, rows}
+	},
+	"prettyJSON": prettyJSON,
+}
+
+// flowView is what the counterparties partial needs: one direction of an account's flows.
+type flowView struct {
+	Label, Total, Currency, Sign string
+	Rows                         []ledger.Counterparty
 }
 
 type accountRef struct {

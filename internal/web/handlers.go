@@ -2,7 +2,9 @@ package web
 
 import (
 	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/pgr0ss/pgledger_visualizer/internal/ledger"
@@ -42,8 +44,47 @@ func (s *server) search(w http.ResponseWriter, r *http.Request) {
 			s.fail(w, r, err, "")
 			return
 		}
+		// A submitted search that names one object exactly opens it. Live (partial)
+		// searches never redirect, so typing an id still shows results as you go.
+		if r.URL.Query().Get("partial") != "1" {
+			if to := jumpTarget(p); to != "" {
+				http.Redirect(w, r, to, http.StatusFound)
+				return
+			}
+		}
 	}
 	s.render(w, r, http.StatusOK, "search", p)
+}
+
+// jumpTarget is the page for the object whose full id, or account name, is exactly
+// the query, if the results hold one.
+func jumpTarget(p searchPage) string {
+	q := strings.TrimSpace(p.Q)
+	for _, a := range p.Accounts {
+		if a.ID == q {
+			return "/accounts/" + url.PathEscape(a.ID)
+		}
+	}
+	for _, t := range p.Transfers {
+		if t.ID == q {
+			return "/transfers/" + url.PathEscape(t.ID)
+		}
+	}
+	for _, e := range p.Entries {
+		if e.ID == q {
+			return "/entries/" + url.PathEscape(e.ID)
+		}
+	}
+	var named []ledger.Account
+	for _, a := range p.Accounts {
+		if a.Name == q {
+			named = append(named, a)
+		}
+	}
+	if len(named) == 1 {
+		return "/accounts/" + url.PathEscape(named[0].ID)
+	}
+	return ""
 }
 
 type accountsPage struct {
@@ -158,7 +199,7 @@ func (s *server) account(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p := accountPage{
-		Title: acct.Name, Nav: "accounts", URL: r.URL,
+		Title: "Account " + acct.Name, Nav: "accounts", URL: r.URL,
 		Account: acct,
 		View:    r.FormValue("view"),
 		Order:   ledger.ParseOrder(r.FormValue("order")),

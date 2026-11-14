@@ -121,8 +121,8 @@ function liveSearch(form) {
     try {
       const res = await fetch(`${form.action}?${params}`, { signal: controller.signal });
       target.innerHTML = await res.text();
+      setCursor(null);
       applyTimezone(target);
-      applyColumnPickers();
     } catch (err) {
       if (err.name !== "AbortError") target.textContent = `Error: ${err.message}`;
     }
@@ -153,63 +153,139 @@ document.addEventListener("click", async (e) => {
   button.copiedTimer = setTimeout(() => button.classList.remove("copied"), 1200);
 });
 
-// Column picker: hides list-table columns by their data-column key, saved per page.
-const columnsKey = (picker) => `pgledger-visualizer.hidden-columns.${picker.dataset.columnPicker}`;
-
-function hiddenColumns(picker) {
-  try {
-    return new Set(JSON.parse(localStorage.getItem(columnsKey(picker))) || []);
-  } catch {
-    return new Set();
-  }
-}
-
-function applyColumnPicker(picker) {
-  const table = document.querySelector(`${picker.dataset.target} table.list`);
-  if (!table) return;
-  const hidden = hiddenColumns(picker);
-  const options = picker.querySelector(".column-picker-options");
-  if (!options.children.length) buildColumnOptions(options, table, hidden);
-  for (const cell of table.querySelectorAll("[data-column]")) {
-    cell.hidden = hidden.has(cell.dataset.column);
-  }
-}
-
-function buildColumnOptions(options, table, hidden) {
-  for (const th of table.querySelectorAll("thead th[data-column]")) {
-    const key = th.dataset.column;
-    const box = document.createElement("input");
-    box.type = "checkbox";
-    box.value = key;
-    box.checked = !hidden.has(key);
-    const label = document.createElement("label");
-    label.append(box, th.textContent.trim());
-    options.append(label);
-  }
-}
-
-function applyColumnPickers() {
-  for (const picker of document.querySelectorAll("[data-column-picker]")) applyColumnPicker(picker);
-}
-
-document.addEventListener("change", (e) => {
-  const picker = e.target.closest("[data-column-picker]");
-  if (!picker) return;
-  const hidden = [...picker.querySelectorAll("input:not(:checked)")].map((box) => box.value);
-  localStorage.setItem(columnsKey(picker), JSON.stringify(hidden));
-  applyColumnPicker(picker);
-});
-
 document.addEventListener("keydown", (e) => {
   if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
   const active = document.activeElement;
   if (active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.tagName === "SELECT")) return;
-  const input = document.querySelector("input[type=search]");
+  // The page's own filter first, else the top bar's search.
+  const input = document.querySelector("main input[type=search]") || document.querySelector(".topbar-search input");
   if (!input) return;
   e.preventDefault();
   input.focus();
   input.select();
 });
+
+// Row cursor: j/k move through the rows of every list and grid on the page, a click
+// on a row (not on a link) selects it, Enter opens it, Escape clears it. On wide
+// screens the selected row's record shows in a preview panel beside the page.
+const rowSelector = "main table.list tbody tr, main table.grid tbody tr";
+const previewQuery = matchMedia("(min-width: 1400px)");
+let cursor = null;
+
+// A row's own record: its entry or transfer when the row says which, else its first link.
+const rowLink = (row) => {
+  const { entry, transfer } = row.dataset;
+  const own = entry ? `/entries/${entry}` : transfer ? `/transfers/${transfer}` : null;
+  return (own && row.querySelector(`a[href="${CSS.escape(own)}"]`)) || row.querySelector("a[href]:not(.pill)");
+};
+const typing = (el) => el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT");
+
+// Listeners (the balance chart) hear every change as a "cursorchange" event.
+function setCursor(row, scroll = true) {
+  cursor?.classList.remove("cursor");
+  cursor = row;
+  if (row) {
+    row.classList.add("cursor");
+    if (scroll) row.scrollIntoView({ block: "nearest" });
+    showPreview(row);
+  } else {
+    closePreview();
+  }
+  document.dispatchEvent(new Event("cursorchange"));
+}
+
+function moveCursor(step) {
+  const rows = [...document.querySelectorAll(rowSelector)].filter((r) => r.offsetParent);
+  if (!rows.length) return;
+  const i = cursor?.isConnected ? rows.indexOf(cursor) : -1;
+  const next = i < 0 ? (step > 0 ? 0 : rows.length - 1) : Math.min(Math.max(i + step, 0), rows.length - 1);
+  setCursor(rows[next]);
+}
+
+document.addEventListener("keydown", (e) => {
+  if (e.metaKey || e.ctrlKey || e.altKey || typing(document.activeElement)) return;
+  if (e.key === "j" || e.key === "k") {
+    e.preventDefault();
+    moveCursor(e.key === "j" ? 1 : -1);
+  } else if (e.key === "Enter" && cursor?.isConnected && !document.activeElement?.matches("a, button")) {
+    const link = rowLink(cursor);
+    if (link) location.assign(link.href);
+  } else if (e.key === "Escape" && cursor) {
+    setCursor(null);
+  }
+});
+
+document.addEventListener("click", (e) => {
+  const row = e.target.closest(rowSelector);
+  if (!row || e.target.closest("a, button, input, select, summary")) return;
+  setCursor(row === cursor ? null : row, false);
+});
+
+const previewCache = new Map();
+let previewPanel = null;
+
+function closePreview() {
+  previewPanel?.remove();
+  previewPanel = null;
+  document.body.classList.remove("has-preview");
+}
+
+// The record's own page, cut down to its heading, flow line and fields.
+async function previewContent(href) {
+  if (!previewCache.has(href)) {
+    previewCache.set(
+      href,
+      fetch(href)
+        .then((res) => res.text())
+        .then((html) => {
+          const page = new DOMParser().parseFromString(html, "text/html").querySelector("main");
+          if (!page) return "";
+          const parts = [page.querySelector(":scope > h1"), page.querySelector(".flow"), page.querySelector(".fields")];
+          // Tools on the page (balance at) don't belong in a preview.
+          for (const form of parts[2]?.querySelectorAll("form") ?? []) {
+            const dd = form.closest("dd");
+            dd.previousElementSibling.remove();
+            dd.remove();
+          }
+          return parts.map((el) => el?.outerHTML ?? "").join("");
+        }),
+    );
+  }
+  return previewCache.get(href);
+}
+
+async function showPreview(row) {
+  const link = rowLink(row);
+  if (!previewQuery.matches || !link) {
+    closePreview();
+    return;
+  }
+  if (!previewPanel) {
+    previewPanel = document.createElement("aside");
+    previewPanel.className = "preview";
+    previewPanel.innerHTML =
+      '<div class="preview-bar"><a class="preview-open">Open →</a>' +
+      '<button type="button" class="preview-close" title="close (Esc)">Close</button></div>' +
+      '<div class="preview-body"></div>';
+    previewPanel.querySelector(".preview-close").addEventListener("click", () => setCursor(null));
+    document.body.append(previewPanel);
+    document.body.classList.add("has-preview");
+  }
+  const href = link.href;
+  previewPanel.querySelector(".preview-open").href = href;
+  previewPanel.dataset.href = href;
+  const body = previewPanel.querySelector(".preview-body");
+  try {
+    const html = await previewContent(href);
+    if (previewPanel?.dataset.href !== href) return;
+    body.innerHTML = html;
+    applyTimezone(body);
+  } catch (err) {
+    body.textContent = `Error: ${err.message}`;
+  }
+}
+
+previewQuery.addEventListener("change", () => (cursor?.isConnected ? showPreview(cursor) : closePreview()));
 
 function toggleColumn(e, on) {
   const cell = e.target.closest("table.grid [data-col]");
@@ -266,14 +342,32 @@ function chartHover(plot) {
   };
 
   // The table rows for a point: its entry's row, else its transfer's grid row.
+  const rowsFor = (p) => {
+    let rows = [];
+    if (p?.e) rows = [...document.querySelectorAll(`tr[data-entry="${CSS.escape(p.e)}"]`)];
+    if (p?.id && !rows.length) rows = [...document.querySelectorAll(`tr[data-transfer="${CSS.escape(p.id)}"]`)];
+    return rows;
+  };
   let linked = [];
   const highlight = (p) => {
     for (const row of linked) row.classList.remove("linked");
-    linked = [];
-    if (p?.e) linked = [...document.querySelectorAll(`tr[data-entry="${CSS.escape(p.e)}"]`)];
-    if (p?.id && !linked.length) linked = [...document.querySelectorAll(`tr[data-transfer="${CSS.escape(p.id)}"]`)];
+    linked = rowsFor(p);
     for (const row of linked) row.classList.add("linked");
   };
+
+  // The point for a table row: its entry, else the last point of its transfer.
+  const rowPoint = (row) =>
+    row.dataset.entry
+      ? points.find((p) => p.e === row.dataset.entry)
+      : points.findLast((p) => p.id === row.dataset.transfer);
+
+  // At rest the chart marks the cursor row's point, if it has one.
+  const rest = () => {
+    const p = cursor?.isConnected && rowPoint(cursor);
+    if (p) show(p);
+    else hide();
+  };
+  document.addEventListener("cursorchange", rest);
 
   plot.addEventListener("mousemove", (e) => {
     const p = nearestPoint(plot, points, e);
@@ -283,15 +377,11 @@ function chartHover(plot) {
     highlight(p);
   });
   plot.addEventListener("mouseleave", () => {
-    hide();
+    rest();
     highlight(null);
   });
 
   // Hovering a table row marks its point on the chart.
-  const rowPoint = (row) =>
-    row.dataset.entry
-      ? points.find((p) => p.e === row.dataset.entry)
-      : points.findLast((p) => p.id === row.dataset.transfer);
   document.addEventListener("mouseover", (e) => {
     const row = e.target.closest("tr[data-entry], tr[data-transfer]");
     const p = row && rowPoint(row);
@@ -299,15 +389,26 @@ function chartHover(plot) {
   });
   document.addEventListener("mouseout", (e) => {
     const row = e.target.closest("tr[data-entry], tr[data-transfer]");
-    if (row && !row.contains(e.relatedTarget)) hide();
+    if (row && !row.contains(e.relatedTarget)) rest();
   });
 
+  // A click selects the point's row (cursor and preview), like clicking the row.
+  // A drag zooms instead (chartZoom). Modifier clicks still open the transfer
+  // in a new tab; a point whose row isn't on the page opens its transfer.
   let downX = null;
   plot.addEventListener("mousedown", (e) => {
     downX = e.clientX;
   });
   plot.addEventListener("click", (e) => {
-    if (downX !== null && Math.abs(e.clientX - downX) >= clickSlop) e.preventDefault();
+    if (downX !== null && Math.abs(e.clientX - downX) >= clickSlop) {
+      e.preventDefault();
+      return;
+    }
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const [row] = rowsFor(nearestPoint(plot, points, e));
+    if (!row) return;
+    e.preventDefault();
+    setCursor(row);
   });
 }
 
@@ -364,5 +465,4 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   applyTimezone(document);
   applyTheme();
-  applyColumnPickers();
 });

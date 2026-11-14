@@ -23,7 +23,7 @@
 {{define "acct"}}<span class="copyable"><a href="/accounts/{{.ID}}"
                                            title="{{.Title}}">{{.ShortName}}</a>{{template "copy" .Name}}</span>{{end}}
 {{define "acctFull"}}<span class="copyable"><a href="/accounts/{{.ID}}"
-                                               title="{{.ID}}">{{.Name}}</a>{{template "copy" .Name}}</span>{{end}}
+                                               title="{{.ID}}"><code>{{.Name}}</code></a>{{template "copy" .Name}}</span>{{end}}
 {{define "shortID"}}<code class="id" title="{{.}}">{{short .}}</code>{{end}}
 {{define "id"}}<span class="copyable">{{template "shortID" .}}{{template "copy" .}}</span>{{end}}
 {{define "fullID"}}<span class="copyable"><code>{{.}}</code>{{template "copy" .}}</span>{{end}}
@@ -201,11 +201,12 @@
       <td data-column="created">{{template "ts" .CreatedAt}}</td>
       <td data-column="account">{{template "acct" (accountRef .AccountID .AccountName)}}</td>
       <td data-column="amount" class="num">{{template "amount" .Amount}}</td>
-      <td data-column="previous" class="num">{{.PreviousBalance}}</td>
-      <td data-column="current" class="num">{{.CurrentBalance}}</td>
-      <td data-column="counterparty">{{template "acct" (accountRef .CounterpartyID .CounterpartyName)}}</td>
-      <td data-column="transfer">{{template "transferLink" .TransferID}}</td>
-      <td data-column="metadata">{{template "pills" pills .Metadata ""}}</td>
+      <td data-priority="3" data-column="previous" class="num">{{.PreviousBalance}}</td>
+      <td data-priority="3" data-column="current" class="num">{{.CurrentBalance}}</td>
+      <td data-priority="2"
+          data-column="counterparty">{{template "acct" (accountRef .CounterpartyID .CounterpartyName)}}</td>
+      <td data-priority="2" data-column="transfer">{{template "transferLink" .TransferID}}</td>
+      <td data-priority="1" data-column="metadata">{{template "pills" pills .Metadata ""}}</td>
     </tr>
   {{end}}
 {{end}}
@@ -215,34 +216,40 @@
     <th data-column="created">created</th>
     <th data-column="account">account</th>
     <th data-column="amount" class="num">amount</th>
-    <th data-column="previous" class="num">previous</th>
-    <th data-column="current" class="num">current</th>
-    <th data-column="counterparty">counterparty</th>
-    <th data-column="transfer">transfer</th>
-    <th data-column="metadata">metadata</th>
+    <th data-priority="3" data-column="previous" class="num">previous</th>
+    <th data-priority="3" data-column="current" class="num">current</th>
+    <th data-priority="2" data-column="counterparty">counterparty</th>
+    <th data-priority="2" data-column="transfer">transfer</th>
+    <th data-priority="1" data-column="metadata">metadata</th>
   </tr>
 {{end}}
+{{/* Funds into or out of an account (flow): the total in the header, then the top
+     counterparties. The panel scrolls inside the account page's top row. */}}
 {{define "counterparties"}}
-  {{if .}}
+  <div class="flow-panel">
     <table class="list">
       <thead>
         <tr>
-          <th>top {{len .}} accounts</th>
-          <th class="num">amount</th>
+          <th>{{.Label}}</th>
+          <th class="num">
+            <span class="amount {{.Sign}}">{{or .Total "0"}}</span> {{.Currency}}
+          </th>
         </tr>
       </thead>
       <tbody>
-        {{range .}}
+        {{range .Rows}}
           <tr>
             <td>{{template "acct" (accountRef .AccountID .Name)}}</td>
-            <td class="num amount">{{.Amount}}</td>
+            <td class="num amount {{$.Sign}}">{{.Amount}}</td>
+          </tr>
+        {{else}}
+          <tr>
+            <td colspan="2" class="muted">No transfers.</td>
           </tr>
         {{end}}
       </tbody>
     </table>
-  {{else}}
-    <p class="muted">No transfers.</p>
-  {{end}}
+  </div>
 {{end}}
 {{define "chart"}}
   {{with .Chart}}
@@ -273,7 +280,8 @@
           <div class="guide" hidden></div>
           <div class="dot" hidden></div>
           <div class="readout" hidden></div>
-          <a class="hit" aria-label="open this entry's transfer"></a>
+          <a class="hit"
+             aria-label="select this entry (with a modifier key, open its transfer)"></a>
         </div>
         {{/* djlint:off H021 */}}
         <div class="x-axis">
@@ -286,17 +294,8 @@
       <figcaption class="muted">
         Balance ({{$.Currency}}) · min {{.Min}} · max {{.Max}} · {{$.Count}} entries
         {{if $.Capped}}(most recent {{$.Count}}){{end}}
-        since {{template "ts" $.First}} · click a point to open its transfer · drag across the chart to zoom
+        since {{template "ts" $.First}} · click a point to select its entry · drag across the chart to zoom
       </figcaption>
     </figure>
   {{end}}
-{{end}}
-{{/* Hides list-table columns in #results; app.js builds the options from th[data-column]. */}}
-{{define "columnPicker"}}
-  <details class="column-picker"
-           data-column-picker="{{.}}"
-           data-target="#results">
-    <summary>Columns</summary>
-    <div class="column-picker-options"></div>
-  </details>
 {{end}}

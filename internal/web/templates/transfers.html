@@ -7,7 +7,6 @@
            placeholder="id, {{if idempotencyKeysTableExists}}idempotency key, {{end}}account name, or metadata"
            autofocus>
   </form>
-  {{template "columnPicker" "transfers"}}
   <div id="results">{{template "results" .}}</div>
 {{end}}
 {{define "results"}}
@@ -17,14 +16,14 @@
         <tr>
           <th data-column="id">id</th>
           <th data-column="created">created</th>
-          <th data-column="event">event</th>
+          <th data-priority="3" data-column="event">event</th>
           <th data-column="from">from</th>
           <th data-column="to">to</th>
           <th data-column="amount" class="num">amount</th>
           {{if idempotencyKeysTableExists}}
-            <th data-column="idempotency-key">idempotency key</th>
+            <th data-priority="3" data-column="idempotency-key">idempotency key</th>
           {{end}}
-          <th data-column="metadata">metadata</th>
+          <th data-priority="1" data-column="metadata">metadata</th>
         </tr>
       </thead>
       <tbody>
@@ -32,18 +31,18 @@
           <tr>
             <td data-column="id">{{template "transferLink" .ID}}</td>
             <td data-column="created">{{template "ts" .CreatedAt}}</td>
-            <td data-column="event">{{template "ts" .EventAt}}</td>
+            <td data-priority="3" data-column="event">{{template "ts" .EventAt}}</td>
             <td data-column="from">{{template "acct" (accountRef .FromAccountID .FromName)}}</td>
             <td data-column="to">{{template "acct" (accountRef .ToAccountID .ToName)}}</td>
             <td data-column="amount" class="num">{{.Amount}} <span class="muted">{{.Currency}}</span></td>
             {{if idempotencyKeysTableExists}}
-              <td data-column="idempotency-key">
+              <td data-priority="3" data-column="idempotency-key">
                 {{if .IdempotencyKey}}
                   {{template "idemKey" .IdempotencyKey}}
                 {{end}}
               </td>
             {{end}}
-            <td data-column="metadata">{{template "pills" pills .Metadata ""}}</td>
+            <td data-priority="1" data-column="metadata">{{template "pills" pills .Metadata ""}}</td>
           </tr>
         {{end}}
       </tbody>

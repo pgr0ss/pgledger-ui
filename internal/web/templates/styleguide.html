@@ -161,23 +161,12 @@
   </section>
   <section class="sg-section">
     <h2>
-      Lists <code>counterparties</code> <code>columnPicker</code> <code>entryHead</code> <code>entryRows</code>
+      Lists <code>counterparties</code> <code>entryHead</code> <code>entryRows</code>
     </h2>
-    <div class="flows">
-      <div class="in">
-        <h2>
-          Funds in <span class="amount">186.09</span> EUR
-        </h2>
-        {{template "counterparties" .TopIn}}
-      </div>
-      <div class="out">
-        <h2>
-          Funds out <span class="amount">0.00</span> EUR
-        </h2>
-        {{template "counterparties" .TopOut}}
-      </div>
+    <div class="account-top">
+      {{template "counterparties" (flow "funds in" "186.09" "EUR" "pos" .TopIn)}}
+      {{template "counterparties" (flow "funds out" "0.00" "EUR" "neg" .TopOut)}}
     </div>
-    {{template "columnPicker" "styleguide"}}
     <div id="results">
       <table class="list">
         <thead>

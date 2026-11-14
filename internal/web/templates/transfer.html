@@ -1,14 +1,10 @@
 {{define "content"}}{{$t := .Transfer}}
-  <h1>Transfer <code>{{short $t.ID}}</code></h1>
+  <h1><span class="kind">Transfer</span> <span class="copyable"><code>{{$t.ID}}</code>{{template "copy" $t.ID}}</span></h1>
   <p class="flow">
     {{template "acctFull" (accountRef $t.FromAccountID $t.FromName)}} → {{template "acctFull" (accountRef $t.ToAccountID $t.ToName)}}
     <strong class="amount">{{$t.Amount}} {{$t.Currency}}</strong>
   </p>
   <dl class="fields">
-    <dt>id</dt>
-    <dd>
-      {{template "fullID" $t.ID}}
-    </dd>
     <dt>created</dt>
     <dd>
       {{template "ts" $t.CreatedAt}}

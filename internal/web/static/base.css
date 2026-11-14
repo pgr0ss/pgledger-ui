@@ -39,9 +39,11 @@
     margin: var(--space-6) 0 var(--space-2);
   }
 
+  /* Fluid: list and grid pages use the full width. main is the container that
+     list columns respond to (components.css). */
   main {
     padding: var(--space-5);
-    max-width: 1600px;
+    container: main / inline-size;
   }
 
   button,

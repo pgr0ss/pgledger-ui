@@ -28,7 +28,7 @@
               <th>name</th>
               <th>currency</th>
               <th class="num">balance</th>
-              <th>id</th>
+              <th data-priority="2">id</th>
             </tr>
           </thead>
           <tbody>
@@ -37,7 +37,7 @@
                 <td>{{template "acct" (accountRef .ID .Name)}}</td>
                 <td>{{.Currency}}</td>
                 <td class="num">{{template "amount" .Balance}}</td>
-                <td>{{template "id" .ID}}</td>
+                <td data-priority="2">{{template "id" .ID}}</td>
               </tr>
             {{end}}
           </tbody>
@@ -59,9 +59,9 @@
               <th data-column="to">to</th>
               <th class="num">amount</th>
               {{if idempotencyKeysTableExists}}
-                <th>idempotency key</th>
+                <th data-priority="3">idempotency key</th>
               {{end}}
-              <th>metadata</th>
+              <th data-priority="1">metadata</th>
             </tr>
           </thead>
           <tbody>
@@ -73,13 +73,13 @@
                 <td data-column="to">{{template "acct" (accountRef .ToAccountID .ToName)}}</td>
                 <td class="num">{{.Amount}} <span class="muted">{{.Currency}}</span></td>
                 {{if idempotencyKeysTableExists}}
-                  <td>
+                  <td data-priority="3">
                     {{if .IdempotencyKey}}
                       {{template "idemKey" .IdempotencyKey}}
                     {{end}}
                   </td>
                 {{end}}
-                <td>{{template "pills" pills .Metadata ""}}</td>
+                <td data-priority="1">{{template "pills" pills .Metadata ""}}</td>
               </tr>
             {{end}}
           </tbody>
