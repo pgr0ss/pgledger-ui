@@ -29,7 +29,16 @@ var funcs = template.FuncMap{
 	"pills":           func(md ledger.Metadata, hide string) pillsView { return pillsView{md, hide} },
 	"maxGrid":         func() int { return ledger.MaxGridTransfers },
 	"accountRef":      func(id, name string) accountRef { return accountRef{id, name} },
-	"prettyJSON":      prettyJSON,
+	"flow": func(label, total, currency, sign string, rows []ledger.Counterparty) flowView {
+		return flowView{label, total, currency, sign, rows}
+	},
+	"prettyJSON": prettyJSON,
+}
+
+// flowView is what the counterparties partial needs: one direction of an account's flows.
+type flowView struct {
+	Label, Total, Currency, Sign string
+	Rows                         []ledger.Counterparty
 }
 
 type accountRef struct {
@@ -54,13 +63,15 @@ type pillsView struct {
 	Hide     string
 }
 
-// short keeps an id's prefix and its last 8 characters.
+// short keeps an id's prefix and its last 6 characters, with the ellipsis in
+// place of the underscore: pglt_01M7…F4QJEP becomes pglt…F4QJEP.
 func short(id string) string {
+	const tail = 6
 	i := strings.IndexByte(id, '_')
-	if i < 0 || len(id)-i-1 <= 8 {
+	if i < 0 || len(id)-i-1 <= tail {
 		return id
 	}
-	return id[:i+1] + "…" + id[len(id)-8:]
+	return id[:i] + "…" + id[len(id)-tail:]
 }
 
 // shortKey keeps an idempotency key's first 8 characters, a UUID's first group.

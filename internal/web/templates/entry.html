@@ -1,10 +1,6 @@
 {{define "content"}}{{$e := .Entry}}
-  <h1>Entry <code>{{short $e.ID}}</code></h1>
+  <h1><span class="kind">Entry</span> <span class="copyable"><code>{{$e.ID}}</code>{{template "copy" $e.ID}}</span></h1>
   <dl class="fields">
-    <dt>id</dt>
-    <dd>
-      <code>{{$e.ID}}</code>
-    </dd>
     <dt>account</dt>
     <dd>
       {{template "acctFull" (accountRef $e.AccountID $e.AccountName)}} <span class="muted">{{$e.Currency}}</span>
@@ -15,7 +11,7 @@
     </dd>
     <dt>balance</dt>
     <dd>
-      {{$e.PreviousBalance}} → {{$e.CurrentBalance}}
+      <span class="num">{{$e.PreviousBalance}}</span> <span class="muted">→</span> <span class="num">{{$e.CurrentBalance}}</span>
     </dd>
     <dt>account version</dt>
     <dd>
@@ -23,7 +19,7 @@
     </dd>
     <dt>transfer</dt>
     <dd>
-      <a href="/transfers/{{$e.TransferID}}"><code>{{$e.TransferID}}</code></a>
+      <span class="copyable"><a href="/transfers/{{$e.TransferID}}"><code>{{$e.TransferID}}</code></a>{{template "copy" $e.TransferID}}</span>
     </dd>
     <dt>counterparty</dt>
     <dd>

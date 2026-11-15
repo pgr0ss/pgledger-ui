@@ -1,0 +1,66 @@
+/*
+ * Layer order for every stylesheet. Later layers win regardless of selector
+ * specificity, so rules never depend on which file or line they sit in.
+ */
+@layer tokens, base, components, pages, utilities;
+
+@layer tokens {
+  :root {
+    color-scheme: light dark;
+
+    /* Color. light-dark() follows color-scheme: the OS by default, or the
+       header's theme toggle via [data-theme]. */
+    --bg: light-dark(#fff, #15171b);
+    --fg: light-dark(#1d2025, #e4e6ea);
+    --muted: light-dark(#6b7280, #9198a3);
+    --border: light-dark(#e3e5e8, #2c3038);
+    --surface: light-dark(#f6f7f9, #1d2026);
+    --accent: light-dark(#2f6fdb, #6c9cf0);
+    --pos: light-dark(#11804a, #4cc386);
+    --neg: light-dark(#c62f2f, #f07171);
+
+    /* Tints follow their base color in both themes. */
+    --pos-tint: color-mix(in srgb, var(--pos) 9%, transparent);
+    --neg-tint: color-mix(in srgb, var(--neg) 9%, transparent);
+    --hover: color-mix(in srgb, var(--accent) 9%, transparent);
+    --hover-strong: color-mix(in srgb, var(--accent) 22%, transparent);
+
+    /* Type */
+    --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --text-xs: 11px;
+    --text-sm: 12px;
+    --text-mono: 13px; /* monospace runs a size down to match the sans x-height */
+    --text-base: 14px;
+    --text-md: 16px;
+    --text-lg: 18px;
+    --text-xl: 22px;
+    --leading: 1.45;
+
+    /* Space */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-7: 40px;
+
+    /* Radius */
+    --radius-sm: 4px;
+    --radius: 6px;
+    --radius-pill: 999px;
+
+    /* Controls and table cells keep their own density. */
+    --control-pad: 5px 10px;
+    --cell-pad: 6px 10px;
+    --cell-pad-dense: 5px 10px;
+  }
+
+  :root[data-theme="light"] {
+    color-scheme: light;
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+  }
+}

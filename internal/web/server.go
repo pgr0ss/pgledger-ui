@@ -15,6 +15,9 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/pgr0ss/pgledger_visualizer/internal/ledger"
@@ -26,12 +29,28 @@ var templateFS embed.FS
 //go:embed static
 var staticFS embed.FS
 
-var pageNames = []string{"home", "search", "accounts", "account", "transfers", "transfer", "entries", "entry", "trace", "error"}
+var pageNames = []string{"home", "search", "accounts", "account", "transfers", "transfer", "entries", "entry", "trace", "styleguide", "error"}
+
+// stylesheets are linked in this order. tokens.css comes first because it
+// declares the cascade layer order.
+var stylesheets = []string{"tokens.css", "base.css", "components.css", "pages.css", "utilities.css"}
+
+// Options configure the server.
+type Options struct {
+	// DevDir, when set, is the internal/web directory. Templates and static
+	// files are then read from it on every request instead of the binary, and
+	// pages load a script that reloads them when a file there changes.
+	DevDir string
+}
 
 type server struct {
-	store  *ledger.Store
-	pages  map[string]*template.Template
-	assets map[string]string // static file name -> content hash
+	store     *ledger.Store
+	dev       bool
+	templates fs.FS
+	static    fs.FS
+	pages     map[string]*template.Template
+	assets    map[string]string // static file name -> content hash; nil in dev
+	boot      string            // identifies this process to dev-reload.js
 }
 
 // base is embedded in every page's data.
@@ -41,25 +60,29 @@ type base struct {
 	URL   *url.URL
 }
 
-func New(store *ledger.Store) (http.Handler, error) {
-	static, err := fs.Sub(staticFS, "static")
-	if err != nil {
-		return nil, err
-	}
-	assets, err := hashAssets(static)
-	if err != nil {
-		return nil, err
-	}
-	s := &server{store: store, pages: map[string]*template.Template{}, assets: assets}
-	for _, name := range pageNames {
-		t, err := template.New(name).Funcs(funcs).Funcs(template.FuncMap{
-			"asset": s.asset, "idempotencyKeysTableExists": store.IdempotencyKeysTableExists,
-		}).ParseFS(templateFS,
-			"templates/layout.html", "templates/partials.html", "templates/"+name+".html")
+func New(store *ledger.Store, opts Options) (http.Handler, error) {
+	s := &server{store: store, boot: strconv.FormatInt(time.Now().UnixNano(), 36)}
+	if opts.DevDir != "" {
+		s.dev = true
+		s.templates = os.DirFS(opts.DevDir)
+		s.static = os.DirFS(filepath.Join(opts.DevDir, "static"))
+	} else {
+		static, err := fs.Sub(staticFS, "static")
 		if err != nil {
-			return nil, fmt.Errorf("parse %s: %w", name, err)
+			return nil, err
 		}
-		s.pages[name] = t
+		s.templates, s.static = templateFS, static
+		if s.assets, err = hashAssets(static); err != nil {
+			return nil, err
+		}
+	}
+	// Parse once even in dev, so a broken template fails at startup.
+	pages, err := s.parsePages()
+	if err != nil {
+		return nil, err
+	}
+	if !s.dev {
+		s.pages = pages
 	}
 
 	mux := http.NewServeMux()
@@ -72,8 +95,47 @@ func New(store *ledger.Store) (http.Handler, error) {
 	mux.HandleFunc("GET /entries", s.entries)
 	mux.HandleFunc("GET /entries/{id}", s.entry)
 	mux.HandleFunc("GET /trace", s.trace)
-	mux.Handle("GET /static/", http.StripPrefix("/static/", s.serveAssets(http.FileServerFS(static))))
+	mux.HandleFunc("GET /styleguide", s.styleguide)
+	mux.Handle("GET /static/", http.StripPrefix("/static/", s.serveAssets(http.FileServerFS(s.static))))
+	if s.dev {
+		mux.HandleFunc("GET /_dev/events", s.devEvents)
+	}
 	return logRequests(securityHeaders(mux)), nil
+}
+
+func (s *server) parsePages() (map[string]*template.Template, error) {
+	pages := map[string]*template.Template{}
+	for _, name := range pageNames {
+		t, err := template.New(name).Funcs(funcs).Funcs(template.FuncMap{
+			"asset":                      s.asset,
+			"stylesheets":                func() []string { return stylesheets },
+			"dev":                        func() bool { return s.dev },
+			"idempotencyKeysTableExists": s.idempotencyKeysTableExists,
+		}).ParseFS(s.templates,
+			"templates/layout.html", "templates/partials.html", "templates/"+name+".html")
+		if err != nil {
+			return nil, fmt.Errorf("parse %s: %w", name, err)
+		}
+		pages[name] = t
+	}
+	return pages, nil
+}
+
+// idempotencyKeysTableExists is false without a store, as on /styleguide in tests.
+func (s *server) idempotencyKeysTableExists() bool {
+	return s.store != nil && s.store.IdempotencyKeysTableExists()
+}
+
+// page returns a parsed page, re-reading the templates in dev.
+func (s *server) page(name string) (*template.Template, error) {
+	if !s.dev {
+		return s.pages[name], nil
+	}
+	pages, err := s.parsePages()
+	if err != nil {
+		return nil, err
+	}
+	return pages[name], nil
 }
 
 func hashAssets(static fs.FS) (map[string]string, error) {
@@ -82,38 +144,62 @@ func hashAssets(static fs.FS) (map[string]string, error) {
 		if err != nil || d.IsDir() {
 			return err
 		}
-		b, err := fs.ReadFile(static, path)
-		if err != nil {
-			return err
-		}
-		sum := sha256.Sum256(b)
-		assets[path] = hex.EncodeToString(sum[:8])
-		return nil
+		hash, err := hashFile(static, path)
+		assets[path] = hash
+		return err
 	})
 	return assets, err
 }
 
+func hashFile(fsys fs.FS, path string) (string, error) {
+	b, err := fs.ReadFile(fsys, path)
+	if err != nil {
+		return "", err
+	}
+	sum := sha256.Sum256(b)
+	return hex.EncodeToString(sum[:8]), nil
+}
+
+// assetHash returns a static file's content hash, reading the file in dev.
+func (s *server) assetHash(name string) (string, bool) {
+	if !s.dev {
+		v, ok := s.assets[name]
+		return v, ok
+	}
+	if !fs.ValidPath(name) {
+		return "", false
+	}
+	if st, err := fs.Stat(s.static, name); err != nil || st.IsDir() {
+		return "", false
+	}
+	v, err := hashFile(s.static, name)
+	return v, err == nil
+}
+
 // asset returns a URL for a static file that changes whenever its content does.
 func (s *server) asset(name string) (string, error) {
-	v, ok := s.assets[name]
+	v, ok := s.assetHash(name)
 	if !ok {
 		return "", fmt.Errorf("unknown asset %q", name)
 	}
 	return "/static/" + name + "?v=" + v, nil
 }
 
-// serveAssets serves only embedded files, never directory listings. Each file
+// serveAssets serves only static files, never directory listings. Each file
 // gets its content hash as an ETag, and browsers may cache it forever when the
-// request carries that hash.
+// request carries that hash. In dev, browsers always revalidate.
 func (s *server) serveAssets(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		hash, ok := s.assets[r.URL.Path]
+		hash, ok := s.assetHash(r.URL.Path)
 		if !ok {
 			http.NotFound(w, r)
 			return
 		}
 		w.Header().Set("ETag", `"`+hash+`"`)
-		if r.URL.Query().Get("v") == hash {
+		switch {
+		case s.dev:
+			w.Header().Set("Cache-Control", "no-cache")
+		case r.URL.Query().Get("v") == hash:
 			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 		}
 		next.ServeHTTP(w, r)
@@ -162,15 +248,23 @@ func securityHeaders(next http.Handler) http.Handler {
 // full layout otherwise.
 func (s *server) render(w http.ResponseWriter, r *http.Request, status int, page string, data any) {
 	name := "layout"
-	if r.URL.Query().Get("partial") == "1" && s.pages[page].Lookup("results") != nil {
-		name = "results"
+	if r.URL.Query().Get("partial") == "1" {
+		if t, err := s.page(page); err == nil && t.Lookup("results") != nil {
+			name = "results"
+		}
 	}
 	s.execute(w, status, page, name, data)
 }
 
 func (s *server) execute(w http.ResponseWriter, status int, page, name string, data any) {
+	t, err := s.page(page)
+	if err != nil {
+		slog.Error("parse", "page", page, "err", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	var buf bytes.Buffer
-	if err := s.pages[page].ExecuteTemplate(&buf, name, data); err != nil {
+	if err := t.ExecuteTemplate(&buf, name, data); err != nil {
 		slog.Error("render", "page", page, "err", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

@@ -39,7 +39,7 @@ func serve(t *testing.T, r testdb.ReconData) fixture {
 	t.Cleanup(pool.Close)
 	store, err := ledger.NewStore(t.Context(), pool)
 	require.NoError(t, err)
-	h, err := web.New(store)
+	h, err := web.New(store, web.Options{})
 	require.NoError(t, err)
 	srv := httptest.NewServer(h)
 	t.Cleanup(srv.Close)
@@ -59,7 +59,7 @@ func (f fixture) get(t *testing.T, path string) (int, string) {
 func TestStaticAssetsCachedByContentHash(t *testing.T) {
 	f := newFixture(t)
 	_, body := f.get(t, "/")
-	m := regexp.MustCompile(`href="(/static/app\.css\?v=\w+)"`).FindStringSubmatch(body)
+	m := regexp.MustCompile(`href="(/static/tokens\.css\?v=\w+)"`).FindStringSubmatch(body)
 	require.NotNil(t, m, body)
 
 	cacheControl := func(path string) string {
@@ -70,7 +70,7 @@ func TestStaticAssetsCachedByContentHash(t *testing.T) {
 		return res.Header.Get("Cache-Control")
 	}
 	assert.Equal(t, "public, max-age=31536000, immutable", cacheControl(m[1]))
-	assert.Empty(t, cacheControl("/static/app.css?v=stale"))
+	assert.Empty(t, cacheControl("/static/tokens.css?v=stale"))
 }
 
 func TestStaticAssetsRevalidateByETag(t *testing.T) {
@@ -96,7 +96,7 @@ func TestStaticAssetsRevalidateByETag(t *testing.T) {
 
 func TestStaticServesOnlyFiles(t *testing.T) {
 	f := newFixture(t)
-	status, _ := f.get(t, "/static/app.css")
+	status, _ := f.get(t, "/static/tokens.css")
 	require.Equal(t, http.StatusOK, status)
 
 	status, body := f.get(t, "/static/")
@@ -125,7 +125,7 @@ func TestTransferPageIdempotencyKey(t *testing.T) {
 
 	_, body = f.get(t, "/transfers?partial=1&q="+key)
 	assert.Contains(t, body, `href="/transfers/`+id+`"`)
-	assert.Contains(t, body, "<code>7c9e6679…</code>")
+	assert.Contains(t, body, `<code class="id">7c9e6679…</code>`)
 }
 
 func TestTransfersWithoutIdempotencyKeys(t *testing.T) {
@@ -187,6 +187,23 @@ func TestSearchByEntryID(t *testing.T) {
 	assert.Contains(t, body, `href="/entries/`+id+`"`)
 }
 
+func TestSearchJumpsToExactMatch(t *testing.T) {
+	f := newFixture(t)
+	id := f.Transfer(t, "p_123", "refund_sent").ID
+
+	_, body := f.get(t, "/search?q="+id)
+	assert.Contains(t, body, "<title>Transfer ")
+	assert.Contains(t, body, "<code>"+id+"</code>")
+	_, body = f.get(t, "/search?q=user1.external")
+	assert.Contains(t, body, "<title>Account user1.external · pgledger</title>")
+
+	// Live search shows results instead, and a partial match never jumps.
+	_, body = f.get(t, "/search?partial=1&q="+id)
+	assert.NotContains(t, body, "<html")
+	_, body = f.get(t, "/search?q=user1.ext")
+	assert.Contains(t, body, "<title>Search · pgledger</title>")
+}
+
 func TestTraceKeySuggestions(t *testing.T) {
 	f := newFixture(t)
 	_, body := f.get(t, "/trace?key=pay&partial=1")
@@ -211,8 +228,8 @@ func TestAccountPage(t *testing.T) {
 	assert.Equal(t, http.StatusOK, status)
 	assert.Contains(t, body, `<svg class="balance-chart"`)
 	assert.Contains(t, body, `<time datetime="`)
-	assert.Contains(t, body, `Funds in <span class="amount">100.00</span> USD`)
-	assert.Contains(t, body, `Funds out <span class="amount">99.50</span> USD`)
+	assert.Contains(t, body, `<span class="amount pos">100.00</span> USD`)
+	assert.Contains(t, body, `<span class="amount neg">99.50</span> USD`)
 }
 
 func TestAccountNamesShortenPrefixedULIDs(t *testing.T) {
@@ -228,7 +245,7 @@ func TestAccountNamesShortenPrefixedULIDs(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	short := `<a href="/accounts/` + id + `" title="` + name + ` ` + id + `">user.us_…XYQ6VWQ7.available</a>`
+	short := `title="` + name + ` ` + id + `">user.us…Q6VWQ7.available</a>`
 	_, body := f.get(t, "/accounts?partial=1&q=user.us_")
 	assert.Contains(t, body, short)
 	_, body = f.get(t, "/transfers?partial=1")
@@ -237,9 +254,9 @@ func TestAccountNamesShortenPrefixedULIDs(t *testing.T) {
 	assert.Contains(t, body, short)
 
 	_, body = f.get(t, "/transfers/"+tid)
-	assert.Contains(t, body, `<a href="/accounts/`+id+`" title="`+id+`">`+name+`</a>`)
+	assert.Contains(t, body, `title="`+id+`"><code>`+name+`</code></a>`)
 	_, body = f.get(t, "/accounts/"+id)
-	assert.Contains(t, body, "<h1>"+name+" ")
+	assert.Contains(t, body, `<span class="copyable"><code>`+name+`</code>`)
 }
 
 func TestAccountZoom(t *testing.T) {
@@ -256,14 +273,14 @@ func TestAccountZoom(t *testing.T) {
 
 	status, body := f.get(t, path+"?"+q.Encode())
 	assert.Equal(t, http.StatusOK, status)
-	assert.Contains(t, body, `Funds in <span class="amount">50.00</span> USD`)
-	assert.Contains(t, body, `Funds out <span class="amount">50.00</span> USD`)
+	assert.Contains(t, body, `<span class="amount pos">50.00</span> USD`)
+	assert.Contains(t, body, `<span class="amount neg">50.00</span> USD`)
 	assert.Contains(t, body, `<a href="`+path+`">Reset zoom</a>`)
 	assert.Contains(t, body, `<input type="hidden" name="from" value="`+q.Get("from")+`">`)
 
 	_, body = f.get(t, path+"?from=garbage")
 	assert.Contains(t, body, `invalid range "garbage"`)
-	assert.Contains(t, body, `Funds in <span class="amount">100.00</span> USD`)
+	assert.Contains(t, body, `<span class="amount pos">100.00</span> USD`)
 }
 
 func TestAccountNotFound(t *testing.T) {
@@ -274,4 +291,23 @@ func TestAccountNotFound(t *testing.T) {
 	status, body := f.get(t, "/accounts/pgla_missing")
 	assert.Equal(t, http.StatusNotFound, status)
 	assert.Contains(t, body, "Not found: pgla_missing")
+}
+
+// The styleguide renders every partial from fixtures, so a template change that
+// breaks one fails here. It needs no database.
+func TestStyleguide(t *testing.T) {
+	t.Parallel()
+	h, err := web.New(nil, web.Options{})
+	require.NoError(t, err)
+	srv := httptest.NewServer(h)
+	t.Cleanup(srv.Close)
+	res, err := http.Get(srv.URL + "/styleguide")
+	require.NoError(t, err)
+	defer func() { _ = res.Body.Close() }()
+	body, err := io.ReadAll(res.Body)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, res.StatusCode, string(body))
+	assert.Contains(t, string(body), `<svg class="balance-chart"`)
+	assert.Contains(t, string(body), `class="tx-badge"`)
+	assert.Contains(t, string(body), `<p class="banner">Showing the most recent`)
 }

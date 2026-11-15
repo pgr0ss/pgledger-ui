@@ -284,6 +284,7 @@ WHERE account_id = sqlc.arg(account_id)::TEXT AND event_at <= sqlc.arg(at)::TIME
 
 -- name: BalanceHistory :many
 SELECT
+    id,
     created_at,
     transfer_id,
     account_current_balance::TEXT AS balance,

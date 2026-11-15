@@ -14,33 +14,35 @@
     <table class="list">
       <thead>
         <tr>
-          <th>id</th>
-          <th>created</th>
-          <th>event</th>
-          <th>from → to</th>
-          <th class="num">amount</th>
+          <th data-column="id">id</th>
+          <th data-column="created">created</th>
+          <th data-priority="3" data-column="event">event</th>
+          <th data-column="from">from</th>
+          <th data-column="to">to</th>
+          <th data-column="amount" class="num">amount</th>
           {{if idempotencyKeysTableExists}}
-            <th>idempotency key</th>
+            <th data-priority="3" data-column="idempotency-key">idempotency key</th>
           {{end}}
-          <th>metadata</th>
+          <th data-priority="1" data-column="metadata">metadata</th>
         </tr>
       </thead>
       <tbody>
         {{range .Transfers}}
           <tr>
-            <td><a href="/transfers/{{.ID}}">{{template "id" .ID}}</a></td>
-            <td>{{template "ts" .CreatedAt}}</td>
-            <td>{{template "ts" .EventAt}}</td>
-            <td>{{template "acct" (accountRef .FromAccountID .FromName)}} → {{template "acct" (accountRef .ToAccountID .ToName)}}</td>
-            <td class="num">{{.Amount}} <span class="muted">{{.Currency}}</span></td>
+            <td data-column="id">{{template "transferLink" .ID}}</td>
+            <td data-column="created">{{template "ts" .CreatedAt}}</td>
+            <td data-priority="3" data-column="event">{{template "ts" .EventAt}}</td>
+            <td data-column="from">{{template "acct" (accountRef .FromAccountID .FromName)}}</td>
+            <td data-column="to">{{template "acct" (accountRef .ToAccountID .ToName)}}</td>
+            <td data-column="amount" class="num">{{.Amount}} <span class="muted">{{.Currency}}</span></td>
             {{if idempotencyKeysTableExists}}
-              <td>
+              <td data-priority="3" data-column="idempotency-key">
                 {{if .IdempotencyKey}}
                   {{template "idemKey" .IdempotencyKey}}
                 {{end}}
               </td>
             {{end}}
-            <td>{{template "pills" pills .Metadata ""}}</td>
+            <td data-priority="1" data-column="metadata">{{template "pills" pills .Metadata ""}}</td>
           </tr>
         {{end}}
       </tbody>

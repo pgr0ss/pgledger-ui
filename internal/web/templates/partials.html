@@ -1,7 +1,35 @@
-{{define "acct"}}<a href="/accounts/{{.ID}}" title="{{.Title}}">{{.ShortName}}</a>{{end}}
-{{define "acctFull"}}<a href="/accounts/{{.ID}}" title="{{.ID}}">{{.Name}}</a>{{end}}
-{{define "id"}}<code title="{{.}}">{{short .}}</code>{{end}}
-{{define "idemKey"}}<a href="/transfers?q={{.}}" title="{{.}}"><code>{{shortKey .}}</code></a>{{end}}
+{{/* Copies its value to the clipboard (app.js); shown while its cell or .copyable is hovered. */}}
+{{define "copy"}}<button type="button"
+                         class="copy"
+                         data-copy="{{.}}"
+                         title="copy {{.}}"
+                         aria-label="copy {{.}}">
+  {{/* Lucide copy and check icons. */}}
+  <svg class="copy-icon"
+       width="13"
+       height="13"
+       viewBox="0 0 24 24"
+       aria-hidden="true">
+    <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+    <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+  </svg><svg class="copied-icon"
+             width="13"
+             height="13"
+             viewBox="0 0 24 24"
+             aria-hidden="true">
+    <path d="M20 6 9 17l-5-5" />
+  </svg>
+</button>{{end}}
+{{define "acct"}}<span class="copyable"><a href="/accounts/{{.ID}}"
+                                           title="{{.Title}}">{{.ShortName}}</a>{{template "copy" .Name}}</span>{{end}}
+{{define "acctFull"}}<span class="copyable"><a href="/accounts/{{.ID}}"
+                                               title="{{.ID}}"><code>{{.Name}}</code></a>{{template "copy" .Name}}</span>{{end}}
+{{define "shortID"}}<code class="id" title="{{.}}">{{short .}}</code>{{end}}
+{{define "id"}}<span class="copyable">{{template "shortID" .}}{{template "copy" .}}</span>{{end}}
+{{define "fullID"}}<span class="copyable"><code>{{.}}</code>{{template "copy" .}}</span>{{end}}
+{{define "transferLink"}}<span class="copyable"><a href="/transfers/{{.}}">{{template "shortID" .}}</a>{{template "copy" .}}</span>{{end}}
+{{define "entryLink"}}<span class="copyable"><a href="/entries/{{.}}">{{template "shortID" .}}</a>{{template "copy" .}}</span>{{end}}
+{{define "idemKey"}}<span class="copyable"><a href="/transfers?q={{.}}" title="{{.}}"><code class="id">{{shortKey .}}</code></a>{{template "copy" .}}</span>{{end}}
 {{define "amount"}}<span class="amount {{signClass .}}">{{.}}</span>{{end}}
 {{define "ts"}}<time datetime="{{isoTime .}}">{{tsText .}}</time>{{end}}
 {{define "tsMinute"}}<time datetime="{{isoTime .}}" data-fmt="minute">{{tsMinuteText .}}</time>{{end}}
@@ -96,9 +124,9 @@
         </thead>
         <tbody>
           {{range $g.Rows}}
-            <tr data-tx="{{.Tx}}">
+            <tr data-tx="{{.Tx}}" data-transfer="{{.TransferID}}">
               <th class="label{{if .Tx}} tx{{end}}{{if .TxStart}} tx-start{{end}}{{if .TxEnd}} tx-end{{end}}">
-                <a href="/transfers/{{.TransferID}}" title="{{.TransferID}}"><code>{{short .TransferID}}</code></a>
+                {{template "transferLink" .TransferID}}
                 <span class="when">
                   {{if eq $v.Order "event_at"}}
                     {{template "ts" .EventAt}}
@@ -169,48 +197,104 @@
 {{define "entryRows"}}
   {{range .}}
     <tr>
-      <td><a href="/entries/{{.ID}}">{{template "id" .ID}}</a></td>
-      <td>{{template "ts" .CreatedAt}}</td>
-      <td>{{template "acct" (accountRef .AccountID .AccountName)}}</td>
-      <td class="num">{{template "amount" .Amount}}</td>
-      <td class="num">{{.PreviousBalance}} → {{.CurrentBalance}}</td>
-      <td>{{template "acct" (accountRef .CounterpartyID .CounterpartyName)}}</td>
-      <td><a href="/transfers/{{.TransferID}}">{{template "id" .TransferID}}</a></td>
-      <td>{{template "pills" pills .Metadata ""}}</td>
+      <td data-column="id">{{template "entryLink" .ID}}</td>
+      <td data-column="created">{{template "ts" .CreatedAt}}</td>
+      <td data-column="account">{{template "acct" (accountRef .AccountID .AccountName)}}</td>
+      <td data-column="amount" class="num">{{template "amount" .Amount}}</td>
+      <td data-priority="3" data-column="previous" class="num">{{.PreviousBalance}}</td>
+      <td data-priority="3" data-column="current" class="num">{{.CurrentBalance}}</td>
+      <td data-priority="2"
+          data-column="counterparty">{{template "acct" (accountRef .CounterpartyID .CounterpartyName)}}</td>
+      <td data-priority="2" data-column="transfer">{{template "transferLink" .TransferID}}</td>
+      <td data-priority="1" data-column="metadata">{{template "pills" pills .Metadata ""}}</td>
     </tr>
   {{end}}
 {{end}}
 {{define "entryHead"}}
   <tr>
-    <th>id</th>
-    <th>created</th>
-    <th>account</th>
-    <th class="num">amount</th>
-    <th class="num">prev → current balance</th>
-    <th>counterparty</th>
-    <th>transfer</th>
-    <th>metadata</th>
+    <th data-column="id">id</th>
+    <th data-column="created">created</th>
+    <th data-column="account">account</th>
+    <th data-column="amount" class="num">amount</th>
+    <th data-priority="3" data-column="previous" class="num">previous</th>
+    <th data-priority="3" data-column="current" class="num">current</th>
+    <th data-priority="2" data-column="counterparty">counterparty</th>
+    <th data-priority="2" data-column="transfer">transfer</th>
+    <th data-priority="1" data-column="metadata">metadata</th>
   </tr>
 {{end}}
+{{/* Funds into or out of an account (flow): the total, then the top counterparties. Scrolls in the account page's top row. */}}
 {{define "counterparties"}}
-  {{if .}}
+  <div class="flow-panel">
     <table class="list">
       <thead>
         <tr>
-          <th>top {{len .}} accounts</th>
-          <th class="num">amount</th>
+          <th>{{.Label}}</th>
+          <th class="num">
+            <span class="amount {{.Sign}}">{{or .Total "0"}}</span> {{.Currency}}
+          </th>
         </tr>
       </thead>
       <tbody>
-        {{range .}}
+        {{range .Rows}}
           <tr>
             <td>{{template "acct" (accountRef .AccountID .Name)}}</td>
-            <td class="num amount">{{.Amount}}</td>
+            <td class="num amount {{$.Sign}}">{{.Amount}}</td>
+          </tr>
+        {{else}}
+          <tr>
+            <td colspan="2" class="muted">No transfers.</td>
           </tr>
         {{end}}
       </tbody>
     </table>
-  {{else}}
-    <p class="muted">No transfers.</p>
+  </div>
+{{end}}
+{{define "chart"}}
+  {{with .Chart}}
+    <figure class="chart" data-currency="{{$.Currency}}">
+      <div class="chart-grid">
+        {{/* djlint:off H021 */}}
+        <div class="y-axis" style="width: {{.LabelWidth}}ch">
+          {{range .YTicks}}
+            <span style="top: {{.Pos}}%">{{.Label}}</span>
+          {{end}}
+        </div>
+        {{/* djlint:on */}}
+        <div class="plot" data-chart="{{.Data}}">
+          <svg class="balance-chart"
+               viewBox="0 0 600 160"
+               preserveAspectRatio="none"
+               role="img"
+               aria-label="balance over time">
+            {{range .YTicks}}
+              <line class="tick" x1="0" x2="600" y1="{{.Y}}" y2="{{.Y}}"></line>
+            {{end}}
+            {{if .HasZero}}
+              <line class="zero" x1="0" x2="600" y1="{{.ZeroY}}" y2="{{.ZeroY}}"></line>
+            {{end}}
+            <polyline class="line" points="{{.Points}}"></polyline>
+          </svg>
+          <div class="selection" hidden></div>
+          <div class="guide" hidden></div>
+          <div class="dot" hidden></div>
+          <div class="readout" hidden></div>
+          <a class="hit"
+             aria-label="select this entry (with a modifier key, open its transfer)"></a>
+        </div>
+        {{/* djlint:off H021 */}}
+        <div class="x-axis">
+          {{range .XTicks}}
+            <span class="{{.Align}}" style="left: {{.Pos}}%">{{template "tsMinute" .At}}</span>
+          {{end}}
+        </div>
+        {{/* djlint:on */}}
+      </div>
+      <figcaption class="muted">
+        Balance ({{$.Currency}}) · min {{.Min}} · max {{.Max}} · {{$.Count}} entries
+        {{if $.Capped}}(most recent {{$.Count}}){{end}}
+        since {{template "ts" $.First}} · click a point to select its entry · drag across the chart to zoom
+      </figcaption>
+    </figure>
   {{end}}
 {{end}}

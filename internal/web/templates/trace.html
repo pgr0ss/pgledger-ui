@@ -25,15 +25,16 @@
                 created
               {{end}}
             </th>
-            <th>from → to</th>
+            <th data-column="from">from</th>
+            <th data-column="to">to</th>
             <th class="num">amount</th>
-            <th>metadata</th>
+            <th data-priority="1">metadata</th>
           </tr>
         </thead>
         <tbody>
           {{range .Transfers}}
             <tr>
-              <td><a href="/transfers/{{.ID}}">{{template "id" .ID}}</a></td>
+              <td>{{template "transferLink" .ID}}</td>
               <td>
                 {{if eq $.Order "event_at"}}
                   {{template "ts" .EventAt}}
@@ -41,9 +42,10 @@
                   {{template "ts" .CreatedAt}}
                 {{end}}
               </td>
-              <td>{{template "acct" (accountRef .FromID .FromName)}} → {{template "acct" (accountRef .ToID .ToName)}}</td>
+              <td data-column="from">{{template "acct" (accountRef .FromID .FromName)}}</td>
+              <td data-column="to">{{template "acct" (accountRef .ToID .ToName)}}</td>
               <td class="num">{{.Amount}} <span class="muted">{{.Currency}}</span></td>
-              <td>{{template "pills" pills .Metadata $.Key}}</td>
+              <td data-priority="1">{{template "pills" pills .Metadata $.Key}}</td>
             </tr>
           {{end}}
         </tbody>

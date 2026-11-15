@@ -24,9 +24,9 @@
           <th>name</th>
           <th>currency</th>
           <th class="num">balance</th>
-          <th class="num">version</th>
-          <th>id</th>
-          <th>created</th>
+          <th data-priority="3" class="num">version</th>
+          <th data-priority="2">id</th>
+          <th data-priority="3">created</th>
         </tr>
       </thead>
       <tbody>
@@ -35,9 +35,9 @@
             <td>{{template "acct" (accountRef .ID .Name)}}</td>
             <td>{{.Currency}}</td>
             <td class="num">{{template "amount" .Balance}}</td>
-            <td class="num">{{.Version}}</td>
-            <td>{{template "id" .ID}}</td>
-            <td>{{template "ts" .CreatedAt}}</td>
+            <td data-priority="3" class="num">{{.Version}}</td>
+            <td data-priority="2">{{template "id" .ID}}</td>
+            <td data-priority="3">{{template "ts" .CreatedAt}}</td>
           </tr>
         {{end}}
       </tbody>

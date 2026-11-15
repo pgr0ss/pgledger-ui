@@ -1,0 +1,623 @@
+/* One block per partial or shared element. /styleguide shows each of them. */
+@layer components {
+  /* Top bar (layout.html) */
+  .topbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-5);
+    padding: 10px var(--space-5);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .topbar-brand {
+    font-weight: 700;
+    color: var(--fg);
+  }
+  .topbar-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    flex: 1;
+  }
+  .topbar-link {
+    color: var(--muted);
+  }
+  .topbar-link.active {
+    color: var(--fg);
+    font-weight: 600;
+  }
+  .topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .topbar-search input {
+    width: 240px;
+  }
+  .topbar-github {
+    display: inline-flex;
+    color: var(--fg);
+    opacity: 0.6;
+  }
+  .topbar-github:hover {
+    opacity: 1;
+  }
+
+  /* Data links. Every id and name in a list, grid, fields table or flow line is a
+     link, so color would mark nothing; they read in fg and show accent and an
+     underline on hover. Accent stays for the few links in prose and chrome. */
+  :is(.list, .grid, .fields, .flow) a {
+    color: inherit;
+  }
+  :is(.list, .grid, .fields, .flow) a:hover {
+    color: var(--accent);
+  }
+
+  /* Money and numbers (amount) */
+  .num,
+  .amount {
+    font-family: var(--font-mono);
+    font-size: var(--text-mono);
+  }
+
+  /* Shortened ids (id, idemKey) stay on one line. */
+  .id {
+    white-space: nowrap;
+  }
+
+  /* Copy button (copy), beside a name or id in .copyable. It keeps its space while
+     hidden so the layout doesn't shift, and shows while its cell or value is hovered. */
+  .copyable {
+    white-space: nowrap;
+  }
+  .copy {
+    display: inline-flex;
+    vertical-align: -2px;
+    margin-left: var(--space-1);
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--muted);
+    opacity: 0;
+  }
+  :is(td, th, dd):hover .copy,
+  .copyable:hover > .copy,
+  .copy:focus-visible {
+    opacity: 1;
+  }
+  .copy:hover {
+    color: var(--accent);
+  }
+  .copy svg {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .copy .copied-icon,
+  .copy.copied .copy-icon {
+    display: none;
+  }
+  .copy.copied .copied-icon {
+    display: block;
+  }
+  .copy.copied {
+    color: var(--pos);
+    opacity: 1;
+  }
+
+  /* Object page heading: a muted type word, then the object's name or id in mono. */
+  h1 .kind {
+    color: var(--muted);
+    font-weight: 400;
+  }
+  h1 code {
+    font-size: 0.93em; /* the same step down as --text-mono to --text-base */
+    word-break: break-all;
+  }
+  h1 .copyable {
+    white-space: normal;
+  }
+
+  /* Metadata (pills, accountPills) */
+  .pills {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+  }
+  .pill {
+    display: inline-block;
+    padding: 0 7px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill);
+    background: var(--surface);
+    font-size: var(--text-sm);
+    white-space: nowrap;
+    color: var(--fg);
+  }
+  .pill b {
+    font-weight: 500;
+    color: var(--muted);
+  }
+  a.pill:hover {
+    border-color: var(--accent);
+    text-decoration: none;
+  }
+  .pill.raw {
+    font-family: var(--font-mono);
+  }
+
+  /* Key-value fields: a two-column table in the same outlined panel as lists.
+     Labels sit on surface like table headers; values are data, so mono. */
+  .fields {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    margin: 0 0 var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    font-family: var(--font-mono);
+    font-size: var(--text-mono);
+  }
+  .fields dt,
+  .fields dd {
+    margin: 0;
+    padding: var(--cell-pad);
+  }
+  .fields dt {
+    color: var(--muted);
+    background: var(--surface);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: calc(var(--text-mono) * var(--leading));
+  }
+  .fields :where(dt:not(:first-of-type), dt:not(:first-of-type) + dd) {
+    border-top: 1px solid var(--border);
+  }
+
+  /* List table (entryHead/entryRows, counterparties, every index page) */
+  /* Sized to content: each column is as wide as its widest cell, wrapping only when the table runs out of room. */
+  /* Monospace throughout, so ids, names, dates and amounts line up the same way. */
+  /* Every list sits in an outlined panel: 1px border, radius, header row on surface,
+     horizontal rules only. (Grids add cell walls; see .grid.) */
+  .list {
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    width: 100%;
+    font-family: var(--font-mono);
+    font-size: var(--text-mono);
+  }
+  .list :where(thead) th {
+    background: var(--surface);
+  }
+  .list thead tr:first-child > :first-child {
+    border-top-left-radius: calc(var(--radius) - 1px);
+  }
+  .list thead tr:first-child > :last-child {
+    border-top-right-radius: calc(var(--radius) - 1px);
+  }
+  .list th,
+  .list td {
+    text-align: left;
+    padding: var(--cell-pad);
+    vertical-align: top;
+  }
+  /* Rules under the header and between rows; the panel's border closes the last row. */
+  .list :where(thead) th,
+  .list :where(tbody tr:not(:last-child)) > td {
+    border-bottom: 1px solid var(--border);
+  }
+  .list .num {
+    text-align: right;
+    white-space: nowrap;
+  }
+  .list th {
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .list tbody tr:hover {
+    background: var(--hover);
+  }
+  /* The keyboard/click row cursor (app.js): the hover tint plus an accent edge. */
+  .list tbody tr.cursor {
+    background: var(--hover);
+  }
+  .list tbody tr.cursor > :first-child {
+    box-shadow: inset 2px 0 0 var(--accent);
+  }
+  /* The row for the point hovered on the balance chart. */
+  .list tbody tr.linked {
+    background: var(--hover-strong);
+  }
+  /* Widths by role. Every cell is one line, so rows keep one height and columns
+     line up. Ids, times and amounts are as wide as their values; metadata takes
+     whatever is left and fades out at its edge rather than wrapping. */
+  .list td {
+    white-space: nowrap;
+  }
+  .list td:has(> .pills) {
+    width: 100%;
+    max-width: 0;
+  }
+  .list td > .pills {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow: hidden;
+    mask-image: linear-gradient(to right, #000 calc(100% - var(--space-6)), transparent);
+  }
+  /* Narrower than the essential columns: the results scroll, not the page. */
+  #results {
+    overflow-x: auto;
+  }
+  /* Lower-priority columns leave as main narrows: 3 first, then 2, then 1
+     (metadata, which shrinks to nothing before it goes). */
+  @container main (width < 1360px) {
+    .list [data-priority="3"] {
+      display: none;
+    }
+  }
+  @container main (width < 1100px) {
+    .list [data-priority="2"] {
+      display: none;
+    }
+  }
+  @container main (width < 760px) {
+    .list [data-priority="1"] {
+      display: none;
+    }
+  }
+
+  /* Funds panel (counterparties): a list that scrolls inside its own outline,
+     header pinned. */
+  .flow-panel {
+    overflow: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .flow-panel :where(.list) {
+    border: 0;
+    border-radius: 0;
+  }
+  .flow-panel :where(.list thead) th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+
+  /* Search form */
+  .search {
+    display: flex;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+  }
+  .search input[type="search"] {
+    flex: 0 1 420px;
+  }
+  .search.big input[type="search"] {
+    flex: 1;
+    font-size: var(--text-lg);
+    padding: 10px 14px;
+  }
+
+  /* Tabs and orderToggle */
+  .tabs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1);
+    margin: var(--space-5) 0 var(--space-3);
+    border-bottom: 1px solid var(--border);
+  }
+  .tabs > a {
+    padding: 6px var(--space-3);
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+  }
+  .tabs > a.active {
+    color: var(--fg);
+    border-bottom-color: var(--accent);
+  }
+  .toggle {
+    margin-left: auto;
+    color: var(--muted);
+  }
+  .toggle a {
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+  }
+  .toggle a.active {
+    background: var(--surface);
+    color: var(--fg);
+  }
+
+  .pager {
+    display: flex;
+    gap: var(--space-4);
+  }
+
+  .banner {
+    background: var(--surface);
+    border-left: 3px solid var(--accent);
+    padding: 6px var(--space-3);
+  }
+
+  /* Balance chart (chart) */
+  .chart {
+    margin: 0 0 var(--space-4);
+  }
+  .chart-grid {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    column-gap: var(--space-2);
+  }
+  .chart .y-axis {
+    position: relative;
+    height: 160px;
+    font: var(--text-xs) var(--font-mono);
+    color: var(--muted);
+  }
+  .chart .y-axis span {
+    position: absolute;
+    right: 0;
+    transform: translateY(-50%);
+    white-space: nowrap;
+  }
+  .chart .plot {
+    position: relative;
+    height: 160px;
+    border-left: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    cursor: crosshair;
+    user-select: none;
+  }
+  .chart .hit {
+    position: absolute;
+    inset: 0;
+    cursor: inherit;
+  }
+  .chart .hit[href] {
+    cursor: pointer;
+  }
+  .chart .selection {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    background: var(--hover-strong);
+    pointer-events: none;
+  }
+  .balance-chart {
+    width: 100%;
+    height: 160px;
+    display: block;
+    overflow: visible;
+  }
+  .balance-chart .tick {
+    stroke: var(--border);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+  .balance-chart .zero {
+    stroke: var(--muted);
+    stroke-dasharray: 4 4;
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+  .balance-chart .line {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 2;
+    vector-effect: non-scaling-stroke;
+  }
+  .chart .x-axis {
+    grid-column: 2;
+    position: relative;
+    height: var(--space-5);
+  }
+  .chart .x-axis span {
+    position: absolute;
+    top: var(--space-1);
+    font: var(--text-xs) var(--font-mono);
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .chart .x-axis .middle {
+    transform: translateX(-50%);
+  }
+  .chart .x-axis .end {
+    transform: translateX(-100%);
+  }
+  .chart .guide {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 0;
+    border-left: 1px dashed var(--muted);
+    pointer-events: none;
+  }
+  .chart .dot {
+    position: absolute;
+    width: var(--space-2);
+    height: var(--space-2);
+    margin: calc(var(--space-1) * -1) 0 0 calc(var(--space-1) * -1);
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 2px var(--bg);
+    pointer-events: none;
+  }
+  .chart .readout {
+    position: absolute;
+    top: var(--space-1);
+    padding: 2px var(--space-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    font: var(--text-sm) var(--font-mono);
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .chart figcaption {
+    font-size: var(--text-sm);
+    margin-top: var(--space-1);
+  }
+
+  /* Crosstab and in/out grid (grid, gridCell) */
+  .grid-wrap {
+    overflow: auto;
+    max-height: 75vh;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .grid {
+    --row-height: calc(var(--text-base) * var(--leading) + 10px + 1px);
+    border-collapse: separate;
+    border-spacing: 0;
+    min-width: 100%;
+  }
+  .grid th,
+  .grid td {
+    padding: var(--cell-pad-dense);
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .grid td {
+    text-align: right;
+    white-space: nowrap;
+    font-family: var(--font-mono);
+    font-size: var(--text-mono);
+  }
+  .grid thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--surface);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  /* The in/out sub-header sticks just under the first header row. */
+  .grid thead tr.sub th {
+    top: var(--row-height);
+    color: var(--muted);
+    font-size: var(--text-sm);
+  }
+  .grid th.label {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    text-align: left;
+    font-weight: 400;
+    min-width: 260px;
+    background: var(--surface);
+  }
+  .grid thead th.label {
+    z-index: 3;
+  }
+  .grid th.label .when {
+    display: block;
+    color: var(--muted);
+    font-size: var(--text-sm);
+  }
+  .grid th.label.tx::before {
+    content: "";
+    position: absolute;
+    left: 3px;
+    top: 0;
+    bottom: -1px;
+    width: 3px;
+    background: var(--accent);
+  }
+  .grid th.label.tx-start::before {
+    top: 5px;
+    border-top-left-radius: 2px;
+    border-top-right-radius: 2px;
+  }
+  .grid th.label.tx-end::before {
+    bottom: 5px;
+    border-bottom-left-radius: 2px;
+    border-bottom-right-radius: 2px;
+  }
+  .tx-badge {
+    margin-left: 6px;
+    padding: 0 5px;
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-pill);
+    color: var(--accent);
+    font-size: var(--text-xs);
+    cursor: default;
+  }
+  .grid tfoot th.label,
+  .grid tfoot td {
+    font-weight: 600;
+    border-top: 2px solid var(--border);
+  }
+  .grid td.cell.pos {
+    background-image: linear-gradient(var(--pos-tint), var(--pos-tint));
+  }
+  .grid td.cell.neg {
+    background-image: linear-gradient(var(--neg-tint), var(--neg-tint));
+  }
+  .grid td.pos a {
+    color: var(--pos);
+  }
+  .grid td.neg a {
+    color: var(--neg);
+  }
+  .grid tbody tr:hover > *,
+  .grid tbody tr.tx-hover > *,
+  .grid tbody tr.linked > *,
+  .grid .col-hover {
+    box-shadow: inset 0 0 0 999px var(--hover);
+  }
+  .grid tbody tr.cursor > * {
+    box-shadow: inset 0 0 0 999px var(--hover);
+  }
+  .grid tbody tr.cursor > .label {
+    box-shadow:
+      inset 2px 0 0 var(--accent),
+      inset 0 0 0 999px var(--hover);
+  }
+  .grid tbody tr:hover > .col-hover {
+    box-shadow: inset 0 0 0 999px var(--hover-strong);
+  }
+
+  /* Preview panel (app.js): the selected row's record beside the page on wide
+     screens. The body becomes two columns; main keeps its container queries. */
+  body.has-preview {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 440px;
+    align-items: start;
+  }
+  body.has-preview > .topbar {
+    grid-column: 1 / -1;
+  }
+  .preview {
+    position: sticky;
+    top: 0;
+    max-height: 100vh;
+    overflow: auto;
+    padding: var(--space-5);
+    border-left: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .preview-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-3);
+  }
+  .preview h1 {
+    font-size: var(--text-md);
+  }
+  .preview .fields dd {
+    min-width: 0;
+    word-break: break-all;
+  }
+  .preview .copyable {
+    white-space: normal;
+  }
+}

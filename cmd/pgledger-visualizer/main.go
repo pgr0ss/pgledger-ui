@@ -8,9 +8,11 @@ import (
 	"flag"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -88,9 +90,13 @@ func exitUsage(msg string) {
 	os.Exit(2)
 }
 
+// devDir is internal/web relative to the repository root.
+const devDir = "internal/web"
+
 type serveOptions struct {
 	databaseURL, addr string
 	slowMS            int
+	dev               bool
 }
 
 func serveFlags(o *serveOptions) *flag.FlagSet {
@@ -98,6 +104,7 @@ func serveFlags(o *serveOptions) *flag.FlagSet {
 	fs.StringVar(&o.databaseURL, "database-url", "", "Postgres URL")
 	fs.StringVar(&o.addr, "addr", "127.0.0.1:8080", "listen address")
 	fs.IntVar(&o.slowMS, "log-slow-queries-ms", -1, "log queries taking at least this many milliseconds; 0 logs all, -1 disables")
+	fs.BoolVar(&o.dev, "dev", false, "read templates and static files from "+devDir+" and live-reload pages; run from the repository root")
 	return fs
 }
 
@@ -126,12 +133,24 @@ func serve(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	h, err := web.New(store)
+	var opts web.Options
+	if o.dev {
+		if _, err := os.Stat(filepath.Join(devDir, "templates")); err != nil {
+			exitUsage("--dev must run from the repository root: " + err.Error())
+		}
+		opts.DevDir = devDir
+	}
+	h, err := web.New(store, opts)
 	if err != nil {
 		return err
 	}
 
 	srv := &http.Server{Addr: o.addr, Handler: h, ReadHeaderTimeout: 5 * time.Second}
+	if o.dev {
+		// Shutdown waits for open requests, and live-reload streams stay open
+		// until their request context ends.
+		srv.BaseContext = func(net.Listener) context.Context { return ctx }
+	}
 	errc := make(chan error, 1)
 	go func() { errc <- srv.ListenAndServe() }()
 	slog.Info("listening on http://" + o.addr)

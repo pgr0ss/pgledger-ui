@@ -39,8 +39,8 @@ description = "Run the visualizer; extra args go to `serve`"
 run = 'go run ./cmd/pgledger-visualizer serve --database-url "${DATABASE_URL:-postgres://pgledger:pgledger@localhost:${POSTGRES_PORT:-5432}/pgledger_visualizer}"'
 
 [tasks.dev]
-description = "Like serve, but restarts when Go, SQL, template or static files change; extra args go to `serve`"
-run = 'watchexec --restart --shell=none --exts go,sql,html,css,js,svg -- go run ./cmd/pgledger-visualizer serve --database-url "${DATABASE_URL:-postgres://pgledger:pgledger@localhost:${POSTGRES_PORT:-5432}/pgledger_visualizer}"'
+description = "serve --dev, restarted when Go or SQL files change (templates and CSS reload live); extra args go to `serve`"
+run = 'watchexec --restart --shell=none --exts go,sql -- go run ./cmd/pgledger-visualizer serve --dev --database-url "${DATABASE_URL:-postgres://pgledger:pgledger@localhost:${POSTGRES_PORT:-5432}/pgledger_visualizer}"'
 
 [tasks.demo]
 description = "Fresh database, sample data, then serve"

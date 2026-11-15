@@ -1,14 +1,10 @@
 {{define "content"}}{{$t := .Transfer}}
-  <h1>Transfer <code>{{short $t.ID}}</code></h1>
+  <h1><span class="kind">Transfer</span> <span class="copyable"><code>{{$t.ID}}</code>{{template "copy" $t.ID}}</span></h1>
   <p class="flow">
     {{template "acctFull" (accountRef $t.FromAccountID $t.FromName)}} → {{template "acctFull" (accountRef $t.ToAccountID $t.ToName)}}
     <strong class="amount">{{$t.Amount}} {{$t.Currency}}</strong>
   </p>
   <dl class="fields">
-    <dt>id</dt>
-    <dd>
-      <code>{{$t.ID}}</code>
-    </dd>
     <dt>created</dt>
     <dd>
       {{template "ts" $t.CreatedAt}}
@@ -21,8 +17,8 @@
       <dt>idempotency key</dt>
       <dd>
         {{if $t.IdempotencyKey}}
-          <a href="/transfers?q={{$t.IdempotencyKey}}"
-             title="transfers created with this key"><code>{{$t.IdempotencyKey}}</code></a>
+          <span class="copyable"><a href="/transfers?q={{$t.IdempotencyKey}}"
+                                    title="transfers created with this key"><code>{{$t.IdempotencyKey}}</code></a>{{template "copy" $t.IdempotencyKey}}</span>
         {{else}}
           <span class="muted">none</span>
         {{end}}
