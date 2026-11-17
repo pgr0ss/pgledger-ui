@@ -365,6 +365,44 @@ func TestGetNotFound(t *testing.T) {
 	assert.ErrorIs(t, err, ledger.ErrNotFound)
 }
 
+func TestViewReadsOneSnapshot(t *testing.T) {
+	r, s := reconStore(t)
+	ctx := t.Context()
+	id := r.Accounts["a_b"]
+	entriesOf := func(v *ledger.Store) ([]ledger.Entry, error) {
+		entries, _, err := v.ListEntries(ctx, ledger.EntryFilter{AccountID: id, Limit: ledger.PageSize})
+		return entries, err
+	}
+
+	var acct ledger.Account
+	var entries []ledger.Entry
+	var transferID string
+	require.NoError(t, s.View(ctx, func(v *ledger.Store) error {
+		var err error
+		if acct, err = v.GetAccount(ctx, id); err != nil {
+			return err
+		}
+		transferID, err = db.New(r.Admin).CreateTransfer(ctx, db.CreateTransferParams{
+			FromAccountID: id, ToAccountID: r.Accounts["axb"], Amount: "5.00", EventAt: time.Now(),
+		})
+		require.NoError(t, err)
+		entries, err = entriesOf(v)
+		return err
+	}))
+	assert.Equal(t, "-3.00", acct.Balance)
+	require.Len(t, entries, 2)
+	assert.Equal(t, acct.Balance, entries[0].CurrentBalance)
+
+	require.NoError(t, s.View(ctx, func(v *ledger.Store) error {
+		var err error
+		entries, err = entriesOf(v)
+		return err
+	}))
+	require.Len(t, entries, 3)
+	assert.Equal(t, transferID, entries[0].TransferID)
+	assert.Equal(t, "-8.00", entries[0].CurrentBalance)
+}
+
 func TestConnectIsReadOnly(t *testing.T) {
 	r, _ := reconStore(t)
 	pool, err := ledger.Connect(context.Background(), r.URL, nil)
