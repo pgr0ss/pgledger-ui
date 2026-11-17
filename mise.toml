@@ -51,6 +51,13 @@ run = [
   { task = "serve" },
 ]
 
+[tasks.screenshots]
+description = "Screenshot a running visualizer in light and dark mode into screenshots/ (needs Google Chrome)"
+run = [
+  "scripts/screenshots.sh screenshots/light",
+  "DARK=1 scripts/screenshots.sh screenshots/dark",
+]
+
 [tasks.test]
 run = "go test -race ./..."
 
