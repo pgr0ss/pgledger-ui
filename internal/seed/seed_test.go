@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/pgr0ss/pgledger_visualizer/internal/seed"
-	"github.com/pgr0ss/pgledger_visualizer/internal/testdb"
+	"github.com/pgr0ss/pgledger-visualizer/internal/seed"
+	"github.com/pgr0ss/pgledger-visualizer/internal/testdb"
 )
 
 var opts = seed.Options{Users: 8, Seed: 1, Now: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)}

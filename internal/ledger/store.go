@@ -11,7 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/pgr0ss/pgledger_visualizer/internal/db"
+	"github.com/pgr0ss/pgledger-visualizer/internal/db"
 )
 
 const (

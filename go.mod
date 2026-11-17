@@ -1,4 +1,4 @@
-module github.com/pgr0ss/pgledger_visualizer
+module github.com/pgr0ss/pgledger-visualizer
 
 go 1.27.3
 

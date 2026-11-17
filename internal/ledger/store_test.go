@@ -11,9 +11,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/pgr0ss/pgledger_visualizer/internal/db"
-	"github.com/pgr0ss/pgledger_visualizer/internal/ledger"
-	"github.com/pgr0ss/pgledger_visualizer/internal/testdb"
+	"github.com/pgr0ss/pgledger-visualizer/internal/db"
+	"github.com/pgr0ss/pgledger-visualizer/internal/ledger"
+	"github.com/pgr0ss/pgledger-visualizer/internal/testdb"
 )
 
 func reconStore(t *testing.T) (testdb.ReconData, *ledger.Store) {

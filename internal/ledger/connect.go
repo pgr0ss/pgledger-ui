@@ -10,7 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/pgr0ss/pgledger_visualizer/internal/db"
+	"github.com/pgr0ss/pgledger-visualizer/internal/db"
 )
 
 // Connect opens a read-only pool and checks that the pgledger views exist.

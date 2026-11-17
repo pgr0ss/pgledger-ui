@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/pgr0ss/pgledger_visualizer/internal/ledger"
+	"github.com/pgr0ss/pgledger-visualizer/internal/ledger"
 )
 
 func TestParseMetadataObject(t *testing.T) {

@@ -12,7 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/pgr0ss/pgledger_visualizer/internal/pgschema"
+	"github.com/pgr0ss/pgledger-visualizer/internal/pgschema"
 )
 
 // BaseURL is TEST_DATABASE_URL or the docker compose database.
