@@ -24,28 +24,29 @@ import (
 	"github.com/pgr0ss/pgledger-visualizer/internal/web"
 )
 
-const usage = `usage: pgledger-visualizer <command> [flags]
+const usage = `usage: pgledger-visualizer [command] [flags]
 
 commands:
-  serve   run the web UI (read-only)
+  serve   run the web UI (read-only); the default
   seed    load sample data
 
 Every flag can also be set by an environment variable, shown in each command's -h.
 run "pgledger-visualizer <command> -h" for flags`
 
 func main() {
-	if len(os.Args) < 2 {
-		exitUsage(usage)
-	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	cmd, args := "serve", os.Args[1:]
+	if len(args) > 0 && !strings.HasPrefix(args[0], "-") {
+		cmd, args = args[0], args[1:]
+	}
 	var err error
-	switch os.Args[1] {
+	switch cmd {
 	case "serve":
-		err = serve(ctx, os.Args[2:])
+		err = serve(ctx, args)
 	case "seed":
-		err = runSeed(ctx, os.Args[2:])
+		err = runSeed(ctx, args)
 	default:
 		exitUsage(usage)
 	}

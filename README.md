@@ -87,12 +87,12 @@ go run . serve --database-url postgres://pgledger:pgledger@localhost:5432/pgledg
 
 ## Commands
 
-- `pgledger-visualizer serve [--addr 127.0.0.1:8080] [--log-slow-queries-ms -1] [--dev] [--database-url URL]`: binds to
-  loopback by default and logs every request. Responses carry a same-origin Content-Security-Policy,
-  `X-Frame-Options: DENY` and `X-Content-Type-Options: nosniff`. `--log-slow-queries-ms N` logs queries taking at least
-  N ms with their arguments; `0` logs every query, `-1` (default) disables query logging. `--dev` (run from the
-  repository root) reads templates and static files from `internal/web` on every request and live-reloads open pages
-  when one changes.
+- `pgledger-visualizer [serve] [--addr 127.0.0.1:8080] [--log-slow-queries-ms -1] [--dev] [--database-url URL]`: the
+  default command. Binds to loopback by default and logs every request. Responses carry a same-origin
+  Content-Security-Policy, `X-Frame-Options: DENY` and `X-Content-Type-Options: nosniff`. `--log-slow-queries-ms N`
+  logs queries taking at least N ms with their arguments; `0` logs every query, `-1` (default) disables query logging.
+  `--dev` (run from the repository root) reads templates and static files from `internal/web` on every request and
+  live-reloads open pages when one changes.
 - `pgledger-visualizer seed [--install-schema] [--users 20] [--seed 1] [--database-url URL]`: loads deterministic sample
   flows into an empty database, spread over the last 30 days. pgledger stamps rows with `now()`, so the seed overwrites
   `created_at` on the accounts, transfers and entries it creates, giving each simulated transaction (an FX's two legs
