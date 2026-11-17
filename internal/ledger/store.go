@@ -25,6 +25,8 @@ const (
 var ErrNotFound = errors.New("not found")
 
 type Store struct {
+	// pool is nil for a Store bound to a View transaction.
+	pool                       *pgxpool.Pool
 	q                          *db.Queries
 	idempotencyKeysTableExists bool
 }
@@ -37,7 +39,19 @@ func NewStore(ctx context.Context, pool *pgxpool.Pool) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Store{q: q, idempotencyKeysTableExists: keys}, nil
+	return &Store{pool: pool, q: q, idempotencyKeysTableExists: keys}, nil
+}
+
+// View runs fn against one REPEATABLE READ, READ ONLY snapshot. Inside fn,
+// View reuses the same snapshot.
+func (s *Store) View(ctx context.Context, fn func(*Store) error) error {
+	if s.pool == nil {
+		return fn(s)
+	}
+	opts := pgx.TxOptions{IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly}
+	return pgx.BeginTxFunc(ctx, s.pool, opts, func(tx pgx.Tx) error {
+		return fn(&Store{q: s.q.WithTx(tx), idempotencyKeysTableExists: s.idempotencyKeysTableExists})
+	})
 }
 
 // IdempotencyKeysTableExists reports whether transfers carry idempotency keys.

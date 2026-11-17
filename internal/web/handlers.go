@@ -27,20 +27,21 @@ func (s *server) search(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	p := searchPage{Title: "Search", Nav: "search", URL: r.URL, Q: r.FormValue("q")}
 	if p.Q != "" {
-		var err error
-		if p.Accounts, _, err = s.store.ListAccounts(ctx, ledger.AccountFilter{Q: p.Q, Limit: ledger.SearchLimit}); err != nil {
-			s.fail(w, r, err, "")
-			return
-		}
-		if p.Transfers, _, err = s.store.ListTransfers(ctx, ledger.TransferFilter{Q: p.Q, Limit: ledger.SearchLimit}); err != nil {
-			s.fail(w, r, err, "")
-			return
-		}
-		if p.Entries, _, err = s.store.ListEntries(ctx, ledger.EntryFilter{Q: p.Q, Limit: ledger.SearchLimit}); err != nil {
-			s.fail(w, r, err, "")
-			return
-		}
-		if p.Pairs, err = s.store.MetadataPairs(ctx, p.Q, ledger.SearchLimit); err != nil {
+		err := s.store.View(ctx, func(st *ledger.Store) error {
+			var err error
+			if p.Accounts, _, err = st.ListAccounts(ctx, ledger.AccountFilter{Q: p.Q, Limit: ledger.SearchLimit}); err != nil {
+				return err
+			}
+			if p.Transfers, _, err = st.ListTransfers(ctx, ledger.TransferFilter{Q: p.Q, Limit: ledger.SearchLimit}); err != nil {
+				return err
+			}
+			if p.Entries, _, err = st.ListEntries(ctx, ledger.EntryFilter{Q: p.Q, Limit: ledger.SearchLimit}); err != nil {
+				return err
+			}
+			p.Pairs, err = st.MetadataPairs(ctx, p.Q, ledger.SearchLimit)
+			return err
+		})
+		if err != nil {
 			s.fail(w, r, err, "")
 			return
 		}
@@ -191,12 +192,25 @@ func parseAt(s string) (time.Time, bool) {
 }
 
 func (s *server) account(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
 	id := r.PathValue("id")
-	acct, err := s.store.GetAccount(ctx, id)
+	var p accountPage
+	err := s.store.View(r.Context(), func(st *ledger.Store) error {
+		var err error
+		p, err = loadAccount(r, st, id)
+		return err
+	})
 	if err != nil {
 		s.fail(w, r, err, id)
 		return
+	}
+	s.render(w, r, http.StatusOK, "account", p)
+}
+
+func loadAccount(r *http.Request, st *ledger.Store, id string) (accountPage, error) {
+	ctx := r.Context()
+	acct, err := st.GetAccount(ctx, id)
+	if err != nil {
+		return accountPage{}, err
 	}
 	p := accountPage{
 		Title: "Account " + acct.Name, Nav: "accounts", URL: r.URL,
@@ -210,10 +224,9 @@ func (s *server) account(w http.ResponseWriter, r *http.Request) {
 		created = p.Zoom.TimeRange
 	}
 
-	hist, err := s.store.BalanceHistory(ctx, id, created, ledger.ChartPoints)
+	hist, err := st.BalanceHistory(ctx, id, created, ledger.ChartPoints)
 	if err != nil {
-		s.fail(w, r, err, id)
-		return
+		return accountPage{}, err
 	}
 	start := acct.CreatedAt
 	if !created.From.IsZero() {
@@ -221,16 +234,14 @@ func (s *server) account(w http.ResponseWriter, r *http.Request) {
 	}
 	series := hist.Series(start, created.To)
 	if p.Chart, err = BuildChart(series, 600, 160); err != nil {
-		s.fail(w, r, err, id)
-		return
+		return accountPage{}, err
 	}
 	if p.Chart != nil {
 		p.ChartCount, p.ChartFirst, p.ChartCapped = len(hist.Points), series[0].At, !hist.Complete
 	}
 
-	if p.Flows, err = s.store.AccountFlows(ctx, id, created, ledger.TopCounterparties); err != nil {
-		s.fail(w, r, err, id)
-		return
+	if p.Flows, err = st.AccountFlows(ctx, id, created, ledger.TopCounterparties); err != nil {
+		return accountPage{}, err
 	}
 
 	if raw := r.FormValue("at"); raw != "" {
@@ -238,41 +249,37 @@ func (s *server) account(w http.ResponseWriter, r *http.Request) {
 		var ok bool
 		if b.At, ok = parseAt(raw); !ok {
 			b.Invalid = true
-		} else if b.Balance, err = s.store.BalanceAt(ctx, id, b.At, p.Order); err != nil {
-			s.fail(w, r, err, id)
-			return
+		} else if b.Balance, err = st.BalanceAt(ctx, id, b.At, p.Order); err != nil {
+			return accountPage{}, err
 		}
 		p.BalanceAt = b
 	}
 
 	switch p.View {
 	case "crosstab", "inout":
-		entries, truncated, err := s.store.GridEntries(ctx, ledger.GridFilter{AccountID: id, Created: created}, p.Order, ledger.MaxGridTransfers)
+		entries, truncated, err := st.GridEntries(ctx, ledger.GridFilter{AccountID: id, Created: created}, p.Order, ledger.MaxGridTransfers)
 		if err != nil {
-			s.fail(w, r, err, id)
-			return
+			return accountPage{}, err
 		}
 		g, err := ledger.BuildGrid(entries, truncated)
 		if err != nil {
-			s.fail(w, r, err, id)
-			return
+			return accountPage{}, err
 		}
 		p.Grid = gridView{Grid: g, View: p.View, Order: p.Order}
 	default:
 		p.View = "entries"
 		var more bool
-		p.Entries, more, err = s.store.ListEntries(ctx, ledger.EntryFilter{
+		p.Entries, more, err = st.ListEntries(ctx, ledger.EntryFilter{
 			AccountID: id, Before: r.FormValue("before"), Created: created, Limit: ledger.PageSize,
 		})
 		if err != nil {
-			s.fail(w, r, err, id)
-			return
+			return accountPage{}, err
 		}
 		if more {
 			p.Before = p.Entries[len(p.Entries)-1].ID
 		}
 	}
-	s.render(w, r, http.StatusOK, "account", p)
+	return p, nil
 }
 
 type transfersPage struct {
@@ -307,19 +314,20 @@ type transferPage struct {
 func (s *server) transfer(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	id := r.PathValue("id")
-	t, err := s.store.GetTransfer(ctx, id)
-	if err != nil {
-		s.fail(w, r, err, id)
-		return
-	}
-	entries, err := s.store.TransferEntries(ctx, id)
-	if err != nil {
-		s.fail(w, r, err, id)
-		return
-	}
-	s.render(w, r, http.StatusOK, "transfer", transferPage{
-		Title: "Transfer " + short(id), Nav: "transfers", URL: r.URL, Transfer: t, Entries: entries,
+	p := transferPage{Title: "Transfer " + short(id), Nav: "transfers", URL: r.URL}
+	err := s.store.View(ctx, func(st *ledger.Store) error {
+		var err error
+		if p.Transfer, err = st.GetTransfer(ctx, id); err != nil {
+			return err
+		}
+		p.Entries, err = st.TransferEntries(ctx, id)
+		return err
 	})
+	if err != nil {
+		s.fail(w, r, err, id)
+		return
+	}
+	s.render(w, r, http.StatusOK, "transfer", p)
 }
 
 type entriesPage struct {
@@ -412,21 +420,24 @@ func (s *server) trace(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var err error
-	if p.Keys, err = s.store.TraceKeys(ctx, p.Key, 20); err != nil {
+	err := s.store.View(ctx, func(st *ledger.Store) error {
+		var err error
+		if p.Keys, err = st.TraceKeys(ctx, p.Key, 20); err != nil {
+			return err
+		}
+		for _, k := range p.Keys {
+			if k.Key == p.Key {
+				p.ExactKey = true
+			}
+		}
+		if p.ExactKey {
+			p.Values, err = st.TraceValues(ctx, p.Key, p.VQ, 100)
+		}
+		return err
+	})
+	if err != nil {
 		s.fail(w, r, err, "")
 		return
-	}
-	for _, k := range p.Keys {
-		if k.Key == p.Key {
-			p.ExactKey = true
-		}
-	}
-	if p.ExactKey {
-		if p.Values, err = s.store.TraceValues(ctx, p.Key, p.VQ, 100); err != nil {
-			s.fail(w, r, err, "")
-			return
-		}
 	}
 	s.render(w, r, http.StatusOK, "trace", p)
 }
