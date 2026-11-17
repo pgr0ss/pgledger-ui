@@ -485,6 +485,18 @@
     border-right: 1px solid var(--border);
     background: var(--bg);
   }
+  /* In/out: each account spans an in and an out column. A darker rule between
+     accounts keeps the in|out divider inside an account from reading the same. */
+  .grid.inout :is(th, td) {
+    border-right-color: color-mix(in srgb, var(--border), var(--fg) 25%);
+  }
+  .grid.inout .in {
+    border-right-color: var(--border);
+  }
+  /* .grid-wrap draws the outer edge. */
+  .grid :is(th, td):last-child {
+    border-right: 0;
+  }
   .grid td {
     text-align: right;
     white-space: nowrap;

@@ -116,7 +116,7 @@
           {{if $inout}}
             <tr class="sub">
               {{range $i, $c := $g.Columns}}
-                <th data-col="{{$i}}">+ in</th>
+                <th data-col="{{$i}}" class="in">+ in</th>
                 <th data-col="{{$i}}">− out</th>
               {{end}}
             </tr>
@@ -143,13 +143,13 @@
               {{range $i, $c := .Cells}}
                 {{if $inout}}
                   {{if eq $c.Sign 1}}
-                    <td data-col="{{$i}}" class="cell pos">{{template "gridCell" $c}}</td>
+                    <td data-col="{{$i}}" class="cell pos in">{{template "gridCell" $c}}</td>
                     <td data-col="{{$i}}"></td>
                   {{else if eq $c.Sign -1}}
-                    <td data-col="{{$i}}"></td>
+                    <td data-col="{{$i}}" class="in"></td>
                     <td data-col="{{$i}}" class="cell neg">{{template "gridCell" $c}}</td>
                   {{else}}
-                    <td data-col="{{$i}}"></td>
+                    <td data-col="{{$i}}" class="in"></td>
                     <td data-col="{{$i}}"></td>
                   {{end}}
                 {{else}}
@@ -164,14 +164,14 @@
             <tr>
               <th class="label">In</th>
               {{range $i, $t := $g.Totals}}
-                <td data-col="{{$i}}" class="pos">{{$t.In}}</td>
+                <td data-col="{{$i}}" class="pos in">{{$t.In}}</td>
                 <td data-col="{{$i}}"></td>
               {{end}}
             </tr>
             <tr>
               <th class="label">Out</th>
               {{range $i, $t := $g.Totals}}
-                <td data-col="{{$i}}"></td>
+                <td data-col="{{$i}}" class="in"></td>
                 <td data-col="{{$i}}" class="neg">{{$t.Out}}</td>
               {{end}}
             </tr>
