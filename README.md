@@ -1,33 +1,41 @@
 # pgledger visualizer
 
-A read-only web UI for [pgledger](https://github.com/pgr0ss/pgledger) data. It reads only the public views
-(`pgledger_accounts_view`, `pgledger_transfers_view`, `pgledger_entries_view`, and `pgledger_idempotency_keys_view` when
-present) and connects with `default_transaction_read_only=on`.
+pgledger-visualizer is a read-only web UI for [pgledger](https://github.com/pgr0ss/pgledger) (a double-entry ledger implementation in PostgreSQL).
+
+Simply point it at a database which uses pgledger views:
 
 ```sh
 pgledger-visualizer serve --database-url postgres://user:pass@host:5432/dbname
 ```
 
-Features:
+## Why
 
-- Live search across accounts, transfers, entries, idempotency keys and metadata. Every id and name is a link. Lists
-  and grids shorten ids, and prefixed ULIDs inside account names (`user.us_…XYQ6VWQ7.available`); hover for the full
-  value.
-- Transfers show the idempotency key they were created with, linking to every transfer created by that call. pgledger
-  versions without `pgledger_idempotency_keys_view` work too; the UI then hides idempotency keys. It checks for the view
-  at startup.
-- Account pages show a balance chart (axes, gridlines, hover readout), total funds in and out with the top 5 accounts
-  each way, the balance at any time (as recorded or by event time), and the account's entries. Drag across the chart to
-  zoom the chart, funds, entries and grids to that `created_at` range.
-- Trace: pick a transfer metadata key and value (e.g. `payment_id`) to follow money across accounts. A crosstab and an
-  in/out grid put accounts in columns with time flowing downward.
-- The crosstab and in/out grids bracket and number (`tx 1`, `tx 2`, …) transfers created in the same database
-  transaction; hovering one highlights the rest. pgledger stamps `created_at` with `now()`, the transaction's start
-  time, so shared `created_at` is the signal (exact across savepoints, which `xmin` is not, and visible through the
-  views). Two transactions starting in the same microsecond would be grouped too.
-- A header toggle switches displayed times between UTC and your browser's timezone.
-- Light and dark themes. The header's theme toggle cycles System (follow the OS), Light and Dark, and the browser
-  remembers the choice.
+Ledgers are incredibly useful, but they can be a bit hard to wrap your head around visually. What are the money flows? What is the set of accounts per user? Why is the balance in this account not what I expect?
+
+This app aims to help address that problem as a companion to [pgledger](https://github.com/pgr0ss/pgledger). pgledger standardizes the ledger modeling, and pgledger-visualizer helps visualize and debug the money flows.
+
+## Screenshots
+
+(More in [screenshots](screenshots))
+
+<a href="screenshots/light/02-search.png">
+  <img src="screenshots/light/02-search.png" alt="screenshot search" width="300" />
+</a>
+<a href="screenshots/light/03-account-entries.png">
+  <img src="screenshots/light/03-account-entries.png" alt="screenshot account" width="300" />
+</a>
+<a href="screenshots/light/05-trace-crosstab.png">
+  <img src="screenshots/light/05-trace-crosstab.png" alt="screenshot trace" width="300" />
+</a>
+
+## Features
+
+- Live search across accounts, transfers, entries, idempotency keys and metadata.
+- Everything is linked. Easily click and navigate from accounts to transfers to entries, and more. Also, one-click copy on all IDs and names.
+- Transfers show their idempotency key, linking to every transfer created with it, and their metadata, linking to its trace.
+- Account pages show a balance chart, total funds in and out with the top 5 accounts each way, the balance at any time (as recorded or by event time), and the account's entries.
+- Trace view shows all transfers for a metadata key/value pair (e.g. `payment_id`). A crosstab and an in/out grid put accounts in columns with time flowing downward.
+- Local settings allow switching between light/dark mode and UTC/local timezone.
 
 ## Run without cloning
 
@@ -43,7 +51,7 @@ Or install the `pgledger-visualizer` binary into `$(go env GOPATH)/bin`:
 go install github.com/pgr0ss/pgledger-visualizer@latest
 ```
 
-## Try it with Docker
+## Demo it with Docker
 
 [`docker-compose.demo.yml`](docker-compose.demo.yml) needs only Docker. From a clone of this repository, it builds the
 visualizer, starts Postgres, loads sample data and serves:
@@ -52,61 +60,26 @@ visualizer, starts Postgres, loads sample data and serves:
 docker compose -f docker-compose.demo.yml up --build
 ```
 
-Then open http://127.0.0.1:8080. Ctrl-C stops it, and `docker compose -f docker-compose.demo.yml down` removes the
-containers.
-
-- `--build` rebuilds the image from the checkout, so it picks up local changes.
-- Postgres keeps its data in memory, so each start seeds fresh data spread over the 30 days before it.
-- `DEMO_PORT=8081` serves on another port.
-
-The [`Dockerfile`](Dockerfile) image runs `serve` on `0.0.0.0:8080` by default:
-`docker run -p 127.0.0.1:8080:8080 -e DATABASE_URL=… <image>`.
-
-## Quickstart
-
-```sh
-mise install
-mise run demo   # start Postgres on :5432, reset the pgledger_visualizer database, load sample data, serve
-```
-
 Then open http://127.0.0.1:8080.
-
-To use a different port, put `POSTGRES_PORT=5455` in a gitignored `.env`. docker compose reads it directly, and mise loads
-it into every task, including `mise run test`. Setting `DATABASE_URL` overrides the URL used by `mise run seed`,
-`mise run serve` and `mise run dev`.
-
-## Pointing at pgledger's example database
-
-In `../pgledger`, run `just run-examples`. Then:
-
-```sh
-go run . serve --database-url postgres://pgledger:pgledger@localhost:5432/pgledger
-```
-
-`/trace?key=payment_id&value=p_123` reproduces the crosstab in pgledger's `examples/reconciliation.sql.out`.
 
 ## Commands
 
 - `pgledger-visualizer [serve] [--addr 127.0.0.1:8080] [--log-slow-queries-ms -1] [--dev] [--database-url URL]`: the
-  default command. Binds to loopback by default and logs every request. Responses carry a same-origin
-  Content-Security-Policy, `X-Frame-Options: DENY` and `X-Content-Type-Options: nosniff`. `--log-slow-queries-ms N`
-  logs queries taking at least N ms with their arguments; `0` logs every query, `-1` (default) disables query logging.
-  `--dev` (run from the repository root) reads templates and static files from `internal/web` on every request and
-  live-reloads open pages when one changes.
+  default command.
+  - `--log-slow-queries-ms N` logs queries taking at least N ms with their arguments; `0` logs every query, and `-1` (the default) disables query logging.
+  - `--dev` reads templates and static files from `internal/web` on every request and live-reloads open pages when one changes. Only works when run from the root of a checkout.
 - `pgledger-visualizer seed [--install-schema] [--users 20] [--seed 1] [--database-url URL]`: loads deterministic sample
-  flows into an empty database, spread over the last 30 days. pgledger stamps rows with `now()`, so the seed overwrites
-  `created_at` on the accounts, transfers and entries it creates, giving each simulated transaction (an FX's two legs
-  share one) a distinct `created_at`. Most client-initiated calls (payment and refund creation, FX) carry a UUID
-  idempotency key. `--install-schema` installs pgledger first if its views are missing.
+  flows into an empty database, spread over the last 30 days.
+  - `--install-schema` installs pgledger first if its views are missing.
 
 ### Environment variables
 
-Every flag can instead be set by an environment variable named after it in upper snake case; a flag on the command
-line wins. `--database-url` reads `DATABASE_URL`, and the rest add a `PGLEDGER_VISUALIZER_` prefix (`--addr` →
-`PGLEDGER_VISUALIZER_ADDR`, `--log-slow-queries-ms` → `PGLEDGER_VISUALIZER_LOG_SLOW_QUERIES_MS`, `--install-schema` →
-`PGLEDGER_VISUALIZER_INSTALL_SCHEMA`). Each command's `-h` lists them.
+Every flag can instead be set by an environment variable named after it in upper snake case. If both the flag and environment variable are set, the flag wins. Each command's `-h` lists them.
 
-Setting the database URL through `DATABASE_URL` rather than `--database-url` keeps its password out of `ps` output.
+- `--database-url` → `DATABASE_URL` (note that this is the only one without the `PGLEDGER_VISUALIZER_` prefix)
+- `--addr` → `PGLEDGER_VISUALIZER_ADDR`
+- `--log-slow-queries-ms` → `PGLEDGER_VISUALIZER_LOG_SLOW_QUERIES_MS`
+- `--install-schema` → `PGLEDGER_VISUALIZER_INSTALL_SCHEMA`
 
 With the [1Password CLI](https://developer.1password.com/docs/cli/), store the URL in an item and give `op run` a
 [secret reference](https://developer.1password.com/docs/cli/secret-references/) (`op://<vault>/<item>/<field>`).
@@ -123,42 +96,24 @@ echo 'DATABASE_URL=op://Private/pgledger-prod/url' > prod.env
 op run --env-file=prod.env -- pgledger-visualizer serve
 ```
 
+## Security
+
+`pgledger-visualizer serve` is read-only. It connects to the database with `default_transaction_read_only=on`, and queries the public views (e.g. `pgledger_transfers_view`). However, `default_transaction_read_only` is a session default, not a permission. If you are using pgledger-visualizer in production, it would be safer to use it with a read-only connection or user.
+
+There is no authentication. If you want to host it for others, run it behind an authenticating proxy.
+
+Pass the database URL through the `DATABASE_URL` environment variable rather than `--database-url` to keep its password out of `ps` output.
+
+The server sets some security-focused response headers, such as a same-origin `Content-Security-Policy` (no inline or third-party scripts), `X-Frame-Options: DENY` and `X-Content-Type-Options: nosniff`.
+
 ## Development
 
-- `mise tasks`: list every task.
-- `mise run dev`: `serve --dev`, restarted (via watchexec) when Go or SQL files change. Template and CSS edits apply
-  without a restart: pages reload, and stylesheets are swapped in place.
-- `/styleguide` shows the design tokens and every partial in each of its states, from fixture data. Open it next to
-  `mise run dev` when working on the design.
+The project relies on [Mise](https://mise.jdx.dev/) and Docker for dependencies.
+
+- `mise install`: install all dependencies.
+- `mise run postgres-up`: start Postgres in the foreground (or `mise run postgres-up-background` to run it in the background). The other tasks need it.
+- `mise run seed`: install pgledger into the `pgledger_visualizer` database and load sample data.
+- `mise run dev`: run the app with auto-reloading so you can use it in a local browser (http://127.0.0.1:8080).
 - `mise run check`: format SQL, templates, CSS and JS, regenerate sqlc code, tidy, test and lint.
-- `mise run test`: needs Postgres (`mise run postgres-up`, or `mise run postgres-up-background` to detach). Each test
-  runs in its own schema. Set `TEST_DATABASE_URL` to use another server.
-- `mise run psql`: open psql in the compose Postgres container on the `pgledger_visualizer` database.
-- Bumping `go` in `mise.toml`: bump the `golang` image in `Dockerfile` too.
-- `mise run sync-pgledger [dir]`: copy pgledger's schema files from `../pgledger` (or `dir`) into `internal/pgschema/sql`.
-  Then run `mise run generate`, which re-checks every query against the new schema.
-- `mise run screenshots`: capture the running visualizer (`$BASE`, default `http://127.0.0.1:8080`) in light and dark
-  mode into `screenshots/{light,dark}`, via headless Google Chrome. Pages are listed in `scripts/screenshots.sh`.
 
-All SQL lives in `internal/db/queries/*.sql`. sqlc (pinned in `mise.toml`) compiles it into typed Go in `internal/db`,
-and sqlfluff formats and lints it with pgledger's config.
-
-Templates in `internal/web/templates` are formatted and linted by [djLint](https://djlint.com) (Go template profile,
-`.djlintrc`). Keep each `{{if}}`, `{{range}}` and `{{end}}` on its own line and put conditionals inside attribute values
-(`class="{{if …}}active{{end}}"`), not around attributes; djLint misformats the other forms.
-
-`internal/web/static` (CSS and JS) is formatted and linted by [Biome](https://biomejs.dev) (`biome.json`). The CSS
-uses cascade layers, declared in `tokens.css` and linked in that order from `layout.html`:
-
-- `tokens.css`: colors (each written once with `light-dark()`; tints derived with `color-mix()`), type, space and
-  radius scales. Use these variables rather than raw values.
-- `base.css`: element defaults.
-- `components.css`: one block per partial or shared element, styled by class name.
-- `pages.css`: layout used by a single page.
-- `utilities.css`: `.muted`, `.pos`, `.neg`, `.zero`, `.error`. The last layer, so these always win.
-
-Later layers win over earlier ones whatever the selector specificity. The header's theme toggle sets `data-theme` on
-`<html>`, which switches `color-scheme`.
-
-Stack: Go with pgx, `html/template`, a few hundred lines of vanilla JS and hand-written CSS, all embedded in one binary. No npm
-and no build step.
+[/styleguide](http://127.0.0.1:8080/styleguide) shows the design tokens and every partial in each of its states, from fixture data. Open it next to `mise run dev` when working on the design.
