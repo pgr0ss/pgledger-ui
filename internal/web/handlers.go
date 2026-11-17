@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pgr0ss/pgledger_visualizer/internal/ledger"
+	"github.com/pgr0ss/pgledger-visualizer/internal/ledger"
 )
 
 func (s *server) home(w http.ResponseWriter, r *http.Request) {

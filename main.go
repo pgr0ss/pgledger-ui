@@ -19,9 +19,9 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/pgr0ss/pgledger_visualizer/internal/ledger"
-	"github.com/pgr0ss/pgledger_visualizer/internal/seed"
-	"github.com/pgr0ss/pgledger_visualizer/internal/web"
+	"github.com/pgr0ss/pgledger-visualizer/internal/ledger"
+	"github.com/pgr0ss/pgledger-visualizer/internal/seed"
+	"github.com/pgr0ss/pgledger-visualizer/internal/web"
 )
 
 const usage = `usage: pgledger-visualizer <command> [flags]

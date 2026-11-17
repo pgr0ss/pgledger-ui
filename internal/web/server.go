@@ -20,7 +20,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/pgr0ss/pgledger_visualizer/internal/ledger"
+	"github.com/pgr0ss/pgledger-visualizer/internal/ledger"
 )
 
 //go:embed templates/*.html

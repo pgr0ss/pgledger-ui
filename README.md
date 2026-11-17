@@ -29,6 +29,20 @@ Features:
 - Light and dark themes. The header's theme toggle cycles System (follow the OS), Light and Dark, and the browser
   remembers the choice.
 
+## Run without cloning
+
+With Go installed:
+
+```sh
+go run github.com/pgr0ss/pgledger-visualizer@latest serve --database-url postgres://user:pass@host:5432/dbname
+```
+
+Or install the `pgledger-visualizer` binary into `$(go env GOPATH)/bin`:
+
+```sh
+go install github.com/pgr0ss/pgledger-visualizer@latest
+```
+
 ## Try it with Docker
 
 [`docker-compose.demo.yml`](docker-compose.demo.yml) needs only Docker. From a clone of this repository, it builds the
@@ -66,7 +80,7 @@ it into every task, including `mise run test`. Setting `DATABASE_URL` overrides 
 In `../pgledger`, run `just run-examples`. Then:
 
 ```sh
-go run ./cmd/pgledger-visualizer serve --database-url postgres://pgledger:pgledger@localhost:5432/pgledger
+go run . serve --database-url postgres://pgledger:pgledger@localhost:5432/pgledger
 ```
 
 `/trace?key=payment_id&value=p_123` reproduces the crosstab in pgledger's `examples/reconciliation.sql.out`.

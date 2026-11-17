@@ -7,7 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/pgr0ss/pgledger_visualizer/internal/db"
+	"github.com/pgr0ss/pgledger-visualizer/internal/db"
 )
 
 // RefundSentEventAt is the event_at of the p_123 refund_sent transfer.

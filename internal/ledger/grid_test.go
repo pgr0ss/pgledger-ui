@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/pgr0ss/pgledger_visualizer/internal/ledger"
+	"github.com/pgr0ss/pgledger-visualizer/internal/ledger"
 )
 
 func entry(transfer, account, amount string) ledger.GridEntry {

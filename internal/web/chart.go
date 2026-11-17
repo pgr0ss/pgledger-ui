@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pgr0ss/pgledger_visualizer/internal/ledger"
+	"github.com/pgr0ss/pgledger-visualizer/internal/ledger"
 )
 
 // Chart is an account's balance over time, drawn as a step line in a
