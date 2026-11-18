@@ -137,6 +137,8 @@ op run --env-file=prod.env -- pgledger-visualizer serve
 - Bumping `go` in `mise.toml`: bump the `golang` image in `Dockerfile` too.
 - `mise run sync-pgledger [dir]`: copy pgledger's schema files from `../pgledger` (or `dir`) into `internal/pgschema/sql`.
   Then run `mise run generate`, which re-checks every query against the new schema.
+- `mise run screenshots`: capture the running visualizer (`$BASE`, default `http://127.0.0.1:8080`) in light and dark
+  mode into `screenshots/{light,dark}`, via headless Google Chrome. Pages are listed in `scripts/screenshots.sh`.
 
 All SQL lives in `internal/db/queries/*.sql`. sqlc (pinned in `mise.toml`) compiles it into typed Go in `internal/db`,
 and sqlfluff formats and lints it with pgledger's config.
