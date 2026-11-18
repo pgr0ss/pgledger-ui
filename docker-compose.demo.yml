@@ -5,7 +5,7 @@ name: pgledger-visualizer-demo
 x-visualizer: &visualizer
   build: .
   environment:
-    DATABASE_URL: postgres://pgledger:pgledger@postgres:5432/pgledger_visualizer
+    DATABASE_URL: postgres://pgledger:pgledger@postgres:5432/pgledger-visualizer
 
 services:
   postgres:
@@ -13,13 +13,13 @@ services:
     environment:
       POSTGRES_USER: pgledger
       POSTGRES_PASSWORD: pgledger
-      POSTGRES_DB: pgledger_visualizer
+      POSTGRES_DB: pgledger-visualizer
     # Stopping the container discards the data, so every start seeds fresh data relative to now.
     tmpfs:
       - /var/lib/postgresql
     healthcheck:
       # TCP, because the image's init-time server listens only on its Unix socket.
-      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U pgledger -d pgledger_visualizer"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U pgledger -d pgledger-visualizer"]
       interval: 2s
       timeout: 5s
       retries: 30

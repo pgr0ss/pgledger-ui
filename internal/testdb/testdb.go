@@ -24,7 +24,7 @@ func BaseURL() string {
 	if port == "" {
 		port = "5432"
 	}
-	return "postgres://pgledger:pgledger@localhost:" + port + "/pgledger_visualizer"
+	return "postgres://pgledger:pgledger@localhost:" + port + "/pgledger-visualizer"
 }
 
 // New creates a schema with pgledger installed and returns a URL whose
