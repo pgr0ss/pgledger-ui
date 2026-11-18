@@ -112,7 +112,7 @@ The project relies on [Mise](https://mise.jdx.dev/) and Docker for dependencies.
 
 - `mise install`: install all dependencies.
 - `mise run postgres-up`: start Postgres in the foreground (or `mise run postgres-up-background` to run it in the background). The other tasks need it.
-- `mise run seed`: install pgledger into the `pgledger_visualizer` database and load sample data.
+- `mise run seed`: install pgledger into the `pgledger-visualizer` database and load sample data.
 - `mise run dev`: run the app with auto-reloading so you can use it in a local browser (http://127.0.0.1:8080).
 - `mise run check`: format SQL, templates, CSS and JS, regenerate sqlc code, tidy, test and lint.
 
