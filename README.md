@@ -1,4 +1,4 @@
-# pgledger visualizer
+# pgledger-visualizer
 
 pgledger-visualizer is a read-only web UI for [pgledger](https://github.com/pgr0ss/pgledger) (a double-entry ledger implementation in PostgreSQL).
 
