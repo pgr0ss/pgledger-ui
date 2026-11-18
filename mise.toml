@@ -1,5 +1,5 @@
 [tools]
-go = "1.27.3"
+go = "1.27.4"
 uv = "0.13.7"             # backs the pipx: installer
 golangci-lint = "2.15.0"
 "pipx:sqlfluff" = "4.5.0"
