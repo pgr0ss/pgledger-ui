@@ -1,4 +1,4 @@
-// Package web serves the read-only pgledger visualizer.
+// Package web serves the read-only pgledger UI.
 package web
 
 import (
@@ -20,7 +20,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/pgr0ss/pgledger-visualizer/internal/ledger"
+	"github.com/pgr0ss/pgledger-ui/internal/ledger"
 )
 
 //go:embed templates/*.html

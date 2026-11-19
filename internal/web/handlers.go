@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pgr0ss/pgledger-visualizer/internal/ledger"
+	"github.com/pgr0ss/pgledger-ui/internal/ledger"
 )
 
 func (s *server) home(w http.ResponseWriter, r *http.Request) {
-	s.render(w, r, http.StatusOK, "home", base{Title: "pgledger visualizer", Nav: "search", URL: r.URL})
+	s.render(w, r, http.StatusOK, "home", base{Title: "pgledger UI", Nav: "search", URL: r.URL})
 }
 
 type searchPage struct {

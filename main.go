@@ -1,4 +1,4 @@
-// Command pgledger-visualizer serves a read-only web UI over pgledger's views and
+// Command pgledger-ui serves a read-only web UI over pgledger's views and
 // loads sample data.
 package main
 
@@ -19,19 +19,19 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/pgr0ss/pgledger-visualizer/internal/ledger"
-	"github.com/pgr0ss/pgledger-visualizer/internal/seed"
-	"github.com/pgr0ss/pgledger-visualizer/internal/web"
+	"github.com/pgr0ss/pgledger-ui/internal/ledger"
+	"github.com/pgr0ss/pgledger-ui/internal/seed"
+	"github.com/pgr0ss/pgledger-ui/internal/web"
 )
 
-const usage = `usage: pgledger-visualizer [command] [flags]
+const usage = `usage: pgledger-ui [command] [flags]
 
 commands:
   serve   run the web UI (read-only); the default
   seed    load sample data
 
 Every flag can also be set by an environment variable, shown in each command's -h.
-run "pgledger-visualizer <command> -h" for flags`
+run "pgledger-ui <command> -h" for flags`
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -57,14 +57,14 @@ func main() {
 }
 
 // envName is the environment variable that sets a flag the command line omits:
-// DATABASE_URL for --database-url, else PGLEDGER_VISUALIZER_ plus the flag name
+// DATABASE_URL for --database-url, else PGLEDGER_UI_ plus the flag name
 // in upper snake case.
 func envName(flagName string) string {
 	name := strings.ToUpper(strings.ReplaceAll(flagName, "-", "_"))
 	if name == "DATABASE_URL" {
 		return name
 	}
-	return "PGLEDGER_VISUALIZER_" + name
+	return "PGLEDGER_UI_" + name
 }
 
 // parse parses args into fs. Each flag takes its value from the command line,

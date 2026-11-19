@@ -1,11 +1,11 @@
-# Starts Postgres, loads sample data and serves the visualizer on http://127.0.0.1:8080.
+# Starts Postgres, loads sample data and serves the UI on http://127.0.0.1:8080.
 # See "Try it with Docker" in README.md.
-name: pgledger-visualizer-demo
+name: pgledger-ui-demo
 
-x-visualizer: &visualizer
+x-ui: &ui
   build: .
   environment:
-    DATABASE_URL: postgres://pgledger:pgledger@postgres:5432/pgledger-visualizer
+    DATABASE_URL: postgres://pgledger:pgledger@postgres:5432/pgledger-ui
 
 services:
   postgres:
@@ -13,26 +13,26 @@ services:
     environment:
       POSTGRES_USER: pgledger
       POSTGRES_PASSWORD: pgledger
-      POSTGRES_DB: pgledger-visualizer
+      POSTGRES_DB: pgledger-ui
     # Stopping the container discards the data, so every start seeds fresh data relative to now.
     tmpfs:
       - /var/lib/postgresql
     healthcheck:
       # TCP, because the image's init-time server listens only on its Unix socket.
-      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U pgledger -d pgledger-visualizer"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U pgledger -d pgledger-ui"]
       interval: 2s
       timeout: 5s
       retries: 30
 
   seed:
-    <<: *visualizer
+    <<: *ui
     command: ["seed", "--install-schema"]
     depends_on:
       postgres:
         condition: service_healthy
 
-  visualizer:
-    <<: *visualizer
+  ui:
+    <<: *ui
     command: ["serve"]
     ports:
       - 127.0.0.1:${DEMO_PORT:-8080}:8080

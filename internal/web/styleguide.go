@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/pgr0ss/pgledger-visualizer/internal/ledger"
+	"github.com/pgr0ss/pgledger-ui/internal/ledger"
 )
 
 // styleguidePage feeds /styleguide, which renders every partial in each of its

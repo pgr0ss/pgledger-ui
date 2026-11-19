@@ -20,27 +20,27 @@ description = "Start Postgres in the background and wait until it's healthy"
 run = "docker compose up --detach --wait"
 
 [tasks.dbreset]
-description = "Drop and recreate the pgledger-visualizer database"
+description = "Drop and recreate the pgledger-ui database"
 run = [
-  "docker compose exec postgres dropdb --force --if-exists -U pgledger pgledger-visualizer",
-  "docker compose exec postgres createdb -U pgledger pgledger-visualizer",
+  "docker compose exec postgres dropdb --force --if-exists -U pgledger pgledger-ui",
+  "docker compose exec postgres createdb -U pgledger pgledger-ui",
 ]
 
 [tasks.psql]
-description = "Open psql on the pgledger-visualizer database; extra args go to psql"
-run = "docker compose exec postgres psql -U pgledger pgledger-visualizer"
+description = "Open psql on the pgledger-ui database; extra args go to psql"
+run = "docker compose exec postgres psql -U pgledger pgledger-ui"
 
 [tasks.seed]
 description = "Install pgledger if missing and load sample data; extra args go to `seed`"
-run = 'go run . seed --install-schema --database-url "${DATABASE_URL:-postgres://pgledger:pgledger@localhost:${POSTGRES_PORT:-5432}/pgledger-visualizer}"'
+run = 'go run . seed --install-schema --database-url "${DATABASE_URL:-postgres://pgledger:pgledger@localhost:${POSTGRES_PORT:-5432}/pgledger-ui}"'
 
 [tasks.serve]
-description = "Run the visualizer; extra args go to `serve`"
-run = 'go run . serve --database-url "${DATABASE_URL:-postgres://pgledger:pgledger@localhost:${POSTGRES_PORT:-5432}/pgledger-visualizer}"'
+description = "Run the UI; extra args go to `serve`"
+run = 'go run . serve --database-url "${DATABASE_URL:-postgres://pgledger:pgledger@localhost:${POSTGRES_PORT:-5432}/pgledger-ui}"'
 
 [tasks.dev]
 description = "serve --dev, restarted when Go or SQL files change (templates and CSS reload live); extra args go to `serve`"
-run = 'watchexec --restart --shell=none --exts go,sql -- go run . serve --dev --database-url "${DATABASE_URL:-postgres://pgledger:pgledger@localhost:${POSTGRES_PORT:-5432}/pgledger-visualizer}"'
+run = 'watchexec --restart --shell=none --exts go,sql -- go run . serve --dev --database-url "${DATABASE_URL:-postgres://pgledger:pgledger@localhost:${POSTGRES_PORT:-5432}/pgledger-ui}"'
 
 [tasks.demo]
 description = "Fresh database, sample data, then serve"
@@ -52,7 +52,7 @@ run = [
 ]
 
 [tasks.screenshots]
-description = "Screenshot a running visualizer in light and dark mode into screenshots/ (needs Google Chrome)"
+description = "Screenshot a running UI in light and dark mode into screenshots/ (needs Google Chrome)"
 run = [
   "scripts/screenshots.sh screenshots/light",
   "DARK=1 scripts/screenshots.sh screenshots/dark",

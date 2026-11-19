@@ -12,7 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/pgr0ss/pgledger-visualizer/internal/pgschema"
+	"github.com/pgr0ss/pgledger-ui/internal/pgschema"
 )
 
 // BaseURL is TEST_DATABASE_URL or the docker compose database.
@@ -24,7 +24,7 @@ func BaseURL() string {
 	if port == "" {
 		port = "5432"
 	}
-	return "postgres://pgledger:pgledger@localhost:" + port + "/pgledger-visualizer"
+	return "postgres://pgledger:pgledger@localhost:" + port + "/pgledger-ui"
 }
 
 // New creates a schema with pgledger installed and returns a URL whose
