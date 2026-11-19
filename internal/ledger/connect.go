@@ -10,7 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/pgr0ss/pgledger-visualizer/internal/db"
+	"github.com/pgr0ss/pgledger-ui/internal/db"
 )
 
 // Connect opens a read-only pool and checks that the pgledger views exist.
@@ -21,7 +21,7 @@ func Connect(ctx context.Context, url string, tracer pgx.QueryTracer) (*pgxpool.
 		return nil, err
 	}
 	cfg.ConnConfig.RuntimeParams["default_transaction_read_only"] = "on"
-	cfg.ConnConfig.RuntimeParams["application_name"] = "pgledger-visualizer"
+	cfg.ConnConfig.RuntimeParams["application_name"] = "pgledger-ui"
 	cfg.ConnConfig.Tracer = tracer
 
 	pool, err := pgxpool.NewWithConfig(ctx, cfg)
@@ -39,7 +39,7 @@ func Connect(ctx context.Context, url string, tracer pgx.QueryTracer) (*pgxpool.
 	}
 	if !installed {
 		pool.Close()
-		return nil, errors.New(`pgledger views not found on search_path; install pgledger or run "pgledger-visualizer seed --install-schema"`)
+		return nil, errors.New(`pgledger views not found on search_path; install pgledger or run "pgledger-ui seed --install-schema"`)
 	}
 	return pool, nil
 }

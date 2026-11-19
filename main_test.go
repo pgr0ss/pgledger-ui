@@ -24,10 +24,10 @@ func TestServeFlagsFromEnv(t *testing.T) {
 	assert.Equal(t, serveOptions{addr: "127.0.0.1:8080", slowMS: -1}, defaults)
 
 	env := map[string]string{
-		"DATABASE_URL":                            "postgres://env",
-		"PGLEDGER_VISUALIZER_ADDR":                "127.0.0.1:9000",
-		"PGLEDGER_VISUALIZER_LOG_SLOW_QUERIES_MS": "5",
-		"PGLEDGER_VISUALIZER_DEV":                 "true",
+		"DATABASE_URL":                    "postgres://env",
+		"PGLEDGER_UI_ADDR":                "127.0.0.1:9000",
+		"PGLEDGER_UI_LOG_SLOW_QUERIES_MS": "5",
+		"PGLEDGER_UI_DEV":                 "true",
 	}
 	var o serveOptions
 	fs := serveFlags(&o)
@@ -46,10 +46,10 @@ func TestSeedFlagsFromEnv(t *testing.T) {
 	assert.Equal(t, seedOptions{users: 20, seed: 1}, defaults)
 
 	env := map[string]string{
-		"DATABASE_URL":                       "postgres://env",
-		"PGLEDGER_VISUALIZER_INSTALL_SCHEMA": "true",
-		"PGLEDGER_VISUALIZER_USERS":          "3",
-		"PGLEDGER_VISUALIZER_SEED":           "9",
+		"DATABASE_URL":               "postgres://env",
+		"PGLEDGER_UI_INSTALL_SCHEMA": "true",
+		"PGLEDGER_UI_USERS":          "3",
+		"PGLEDGER_UI_SEED":           "9",
 	}
 	var o seedOptions
 	fs := seedFlags(&o)
@@ -64,6 +64,6 @@ func TestSeedFlagsFromEnv(t *testing.T) {
 
 func TestInvalidEnvValue(t *testing.T) {
 	var o seedOptions
-	err := parse(seedFlags(&o), nil, getenv(map[string]string{"PGLEDGER_VISUALIZER_USERS": "many"}))
-	assert.ErrorContains(t, err, `invalid PGLEDGER_VISUALIZER_USERS "many"`)
+	err := parse(seedFlags(&o), nil, getenv(map[string]string{"PGLEDGER_UI_USERS": "many"}))
+	assert.ErrorContains(t, err, `invalid PGLEDGER_UI_USERS "many"`)
 }

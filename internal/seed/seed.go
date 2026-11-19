@@ -14,8 +14,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"github.com/pgr0ss/pgledger-visualizer/internal/db"
-	"github.com/pgr0ss/pgledger-visualizer/internal/pgschema"
+	"github.com/pgr0ss/pgledger-ui/internal/db"
+	"github.com/pgr0ss/pgledger-ui/internal/pgschema"
 )
 
 type Options struct {

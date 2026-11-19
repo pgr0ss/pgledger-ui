@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Captures screenshots of a running pgledger-visualizer with headless Chrome.
+# Captures screenshots of a running pgledger-ui with headless Chrome.
 # Usage: scripts/screenshots.sh [out_dir, default ./screenshots]   env: BASE, WIDTH, HEIGHT, SCALE, DARK=1, CHROME
 set -euo pipefail
 

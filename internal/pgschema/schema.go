@@ -1,4 +1,4 @@
-// Package pgschema embeds pgledger's SQL so the visualizer can install it.
+// Package pgschema embeds pgledger's SQL so the UI can install it.
 package pgschema
 
 import (

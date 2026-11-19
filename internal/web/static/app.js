@@ -1,4 +1,4 @@
-const TZ_KEY = "pgledger-visualizer.tz";
+const TZ_KEY = "pgledger-ui.tz";
 const localZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 function tzMode() {
@@ -62,7 +62,7 @@ document.addEventListener("click", (e) => {
 
 // Theme: System follows the OS; Light and Dark set data-theme, which tokens.css
 // maps to color-scheme. theme.js applies the saved choice before first paint.
-const THEME_KEY = "pgledger-visualizer.theme";
+const THEME_KEY = "pgledger-ui.theme";
 const themes = ["system", "light", "dark"];
 const themeLabels = { system: "System", light: "Light", dark: "Dark" };
 

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pgr0ss/pgledger-visualizer/internal/ledger"
+	"github.com/pgr0ss/pgledger-ui/internal/ledger"
 )
 
 const timeLayout = "2006-01-02 15:04:05.000"

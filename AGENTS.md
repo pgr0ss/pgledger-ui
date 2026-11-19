@@ -9,10 +9,10 @@ No npm and no build step.
 
 - Run `mise run check` after making code changes.
 - `mise run test`: each test runs in its own schema. Set `TEST_DATABASE_URL` to use another server.
-- `mise run psql`: open psql in the compose Postgres container on the `pgledger-visualizer` database.
+- `mise run psql`: open psql in the compose Postgres container on the `pgledger-ui` database.
 - `mise run sync-pgledger [dir]`: copy pgledger's schema files from `../pgledger` (or `dir`) into `internal/pgschema/sql`.
   Then run `mise run generate`, which re-checks every query against the new schema.
-- `mise run screenshots`: capture the running visualizer (`$BASE`, default `http://127.0.0.1:8080`) in light and dark
+- `mise run screenshots`: capture the running UI (`$BASE`, default `http://127.0.0.1:8080`) in light and dark
   mode into `screenshots/{light,dark}`, via headless Google Chrome. Pages are listed in `scripts/screenshots.sh`.
 - Bumping `go` in `mise.toml`: bump the `golang` image in `Dockerfile` too.
 
