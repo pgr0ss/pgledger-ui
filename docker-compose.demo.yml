@@ -9,7 +9,7 @@ x-ui: &ui
 
 services:
   postgres:
-    image: postgres:18
+    image: postgres:19
     environment:
       POSTGRES_USER: pgledger
       POSTGRES_PASSWORD: pgledger
