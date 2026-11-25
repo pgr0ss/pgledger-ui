@@ -4,7 +4,7 @@ uv = "0.13.7"             # backs the pipx: installer
 golangci-lint = "2.15.0"
 "pipx:sqlfluff" = "4.5.0"
 sqlc = "1.31.1"           # registry resolves to aqua:sqlc-dev/sqlc
-"pipx:djlint" = "1.50.0"
+"pipx:djlint" = "1.54.0"
 biome = "2.6.4"
 watchexec = "2.8.0"
 
